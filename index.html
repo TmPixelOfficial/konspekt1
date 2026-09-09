@@ -1,0 +1,3457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Конспект</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1B2A4A">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Конспект">
+<style>
+  :root{
+    --paper:#EEF1F6;
+    --paper2:#E3E9F2;
+    --card:#FFFFFF;
+    --grid:rgba(27,42,74,0.07);
+    --ink:#1B2A4A;
+    --ink-soft:#5B6B8C;
+    --ink-faint:#8C97B3;
+    --red:#C1443D;
+    --green:#3F7D58;
+    --gold:#B9812A;
+    --line:#D3DAE6;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    color:var(--ink);
+    background-color:var(--paper);
+    background-image:
+      repeating-linear-gradient(0deg, var(--grid) 0 1px, transparent 1px 28px),
+      repeating-linear-gradient(90deg, var(--grid) 0 1px, transparent 1px 28px);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  h1,h2,h3{font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif; margin:0;}
+  header{
+    padding:18px 20px 14px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-shrink:0;
+  }
+  header h1{font-size:22px; font-weight:600; letter-spacing:0.2px;}
+  header .date{font-size:12px; color:var(--ink-faint);}
+  main{
+    flex:1;
+    overflow-y:auto;
+    padding:4px 16px 100px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .view{display:none;}
+  .view.active{display:block; animation:fadein .18s ease;}
+  @keyframes fadein{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:translateY(0)}}
+
+  .empty{
+    text-align:center;
+    color:var(--ink-faint);
+    padding:60px 20px;
+    font-size:14px;
+    line-height:1.6;
+  }
+  .empty svg{margin-bottom:10px; opacity:.5;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+    margin-bottom:10px;
+    box-shadow:0 1px 0 rgba(27,42,74,0.03);
+  }
+  .card-row{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .note-title{font-weight:600; font-size:15px; margin-bottom:4px;}
+  .note-text{font-size:13.5px; color:var(--ink-soft); white-space:pre-wrap; line-height:1.5;}
+  .note-meta{font-size:11px; color:var(--ink-faint); margin-top:8px;}
+
+  .icon-btn{
+    border:none; background:transparent; color:var(--ink-faint);
+    cursor:pointer; padding:4px; line-height:0; flex-shrink:0;
+  }
+  .icon-btn:active{color:var(--red);}
+
+  /* Flashcards */
+  .deck-count{font-size:12px; color:var(--ink-faint); margin:2px 0 14px;}
+  .study-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; padding:13px; margin-bottom:16px;
+    background:var(--ink); color:var(--paper);
+    border:none; border-radius:10px; font-size:14.5px; font-weight:600;
+    cursor:pointer;
+  }
+  .study-btn:disabled{background:var(--line); color:var(--ink-faint);}
+
+  .flash-front{font-weight:600; font-size:14.5px;}
+  .flash-back{font-size:13px; color:var(--ink-soft); margin-top:3px;}
+
+  .review-wrap{
+    display:flex; flex-direction:column; align-items:center; padding-top:10px;
+  }
+  .flip-card{
+    width:100%; max-width:340px; height:220px;
+    perspective:1200px; margin-bottom:22px;
+  }
+  .flip-inner{
+    position:relative; width:100%; height:100%;
+    transform-style:preserve-3d; transition:transform .45s;
+  }
+  .flip-card.flipped .flip-inner{transform:rotateY(180deg);}
+  .flip-face{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    text-align:center; padding:24px;
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    backface-visibility:hidden;
+    font-size:18px; font-weight:600;
+    box-shadow:0 2px 10px rgba(27,42,74,0.06);
+  }
+  .flip-face.back{transform:rotateY(180deg); color:var(--ink-soft); font-weight:500; font-size:16px;}
+  .flip-hint{font-size:11.5px; color:var(--ink-faint); margin-top:-14px; margin-bottom:20px;}
+  .review-actions{display:flex; gap:10px; width:100%; max-width:340px;}
+  .review-actions button{
+    flex:1; padding:13px 0; border-radius:10px; border:none; font-size:14px; font-weight:600; cursor:pointer;
+  }
+  .btn-again{background:#F5E4E2; color:var(--red);}
+  .btn-know{background:#E1EEE5; color:var(--green);}
+  .review-progress{font-size:12px; color:var(--ink-faint); margin-bottom:14px;}
+  .review-done{text-align:center; padding:40px 20px;}
+  .review-done h3{margin-bottom:8px;}
+
+  /* Planner */
+  .task-row{display:flex; align-items:flex-start; gap:12px;}
+  .check{
+    width:21px; height:21px; border-radius:50%; border:2px solid var(--ink-faint);
+    flex-shrink:0; margin-top:1px; cursor:pointer; position:relative;
+  }
+  .check.done{background:var(--green); border-color:var(--green);}
+  .check.done::after{
+    content:""; position:absolute; left:5px; top:1px; width:6px; height:10px;
+    border:solid white; border-width:0 2px 2px 0; transform:rotate(45deg);
+  }
+  .task-text{font-size:14.5px; flex:1;}
+  .task-text.done{text-decoration:line-through; color:var(--ink-faint);}
+  .task-date{font-size:11.5px; color:var(--ink-faint); margin-top:3px;}
+  .task-date.overdue{color:var(--red); font-weight:600;}
+
+  /* YouTube / Minecraft videos */
+  .yt-card{cursor:pointer;}
+  .yt-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .yt-title{font-weight:600; font-size:15px; flex:1;}
+  .yt-progress-row{display:flex; align-items:center; gap:8px; margin-top:9px;}
+  .yt-bar{flex:1; height:6px; border-radius:4px; background:var(--line); overflow:hidden;}
+  .yt-bar-fill{height:100%; background:var(--gold); border-radius:4px; transition:width .2s;}
+  .yt-bar-fill.done{background:var(--green);}
+  .yt-progress-label{font-size:11px; color:var(--ink-faint); flex-shrink:0;}
+  .yt-tag{
+    font-size:10.5px; padding:2px 8px; border-radius:10px; background:#E1EEE5; color:var(--green);
+    flex-shrink:0; font-weight:600;
+  }
+  .yt-checklist{margin-top:12px; border-top:1px dashed var(--line); padding-top:10px;}
+  .yt-check-item{display:flex; align-items:center; gap:10px; padding:6px 0; font-size:13.5px;}
+  .yt-check-item span{flex:1;}
+  .yt-check-item.checked span{color:var(--ink-faint); text-decoration:line-through;}
+  .check-sq{
+    width:19px; height:19px; border-radius:5px; border:2px solid var(--ink-faint);
+    flex-shrink:0; position:relative;
+  }
+  .check-sq.done{background:var(--green); border-color:var(--green);}
+  .check-sq.done::after{
+    content:""; position:absolute; left:4px; top:0px; width:6px; height:10px;
+    border:solid white; border-width:0 2px 2px 0; transform:rotate(45deg);
+  }
+  .section-heading{font-size:14px; font-weight:600; color:var(--ink-soft); margin:20px 0 10px !important;}
+
+  /* Channel card */
+  .connect-card{
+    background:var(--card); border:1px dashed var(--line); border-radius:12px;
+    padding:22px 18px; text-align:center; margin-bottom:4px;
+  }
+  .connect-card svg{opacity:.5; margin-bottom:8px;}
+  .connect-card p{font-size:13px; color:var(--ink-faint); margin:4px 0 14px; line-height:1.5;}
+  .connect-btn{
+    background:var(--ink); color:var(--paper); border:none; padding:11px 20px;
+    border-radius:9px; font-size:14px; font-weight:600; cursor:pointer;
+  }
+  .channel-card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:4px;}
+  .channel-head{display:flex; align-items:center; gap:12px;}
+  .channel-avatar{width:48px; height:48px; border-radius:50%; object-fit:cover; flex-shrink:0; background:var(--paper2);}
+  .channel-name{font-weight:600; font-size:15.5px;}
+  .channel-sub{font-size:12px; color:var(--ink-faint); margin-top:2px;}
+  .channel-stats{display:flex; margin:16px 0 12px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:12px 0;}
+  .stat-box{flex:1; text-align:center;}
+  .stat-num{font-weight:700; font-size:16px;}
+  .stat-label{font-size:10.5px; color:var(--ink-faint); margin-top:2px;}
+  .channel-foot{display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--ink-faint); margin-bottom:2px;}
+  .channel-foot button{background:none; border:none; color:var(--ink-faint); font-size:11.5px; cursor:pointer; text-decoration:underline; padding:2px;}
+  .upload-list{margin-top:10px;}
+  .upload-item{display:flex; gap:10px; padding:8px 0; border-top:1px solid var(--line);}
+  .upload-item:first-child{border-top:none;}
+  .upload-thumb{width:88px; height:50px; border-radius:6px; object-fit:cover; flex-shrink:0; background:var(--paper2);}
+  .upload-title{font-size:13px; font-weight:600; line-height:1.3;}
+  .upload-meta{font-size:11px; color:var(--ink-faint); margin-top:4px;}
+
+  /* Yt sub-nav pills */
+  .yt-subnav{display:flex; gap:6px; margin:2px 0 14px; overflow-x:auto;}
+  .yt-sub-btn{
+    flex-shrink:0; padding:7px 14px; border-radius:20px; border:1px solid var(--line);
+    background:var(--card); color:var(--ink-soft); font-size:13px; cursor:pointer;
+  }
+  .yt-sub-btn.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  .yt-sub-view{display:none;}
+  .yt-sub-view.active{display:block;}
+
+  /* Idea bank */
+  .idea-row{display:flex; align-items:center; gap:10px;}
+  .idea-text{flex:1; font-size:14px;}
+  .idea-promote{
+    border:none; background:#E1EEE5; color:var(--green); font-size:11.5px; font-weight:600;
+    padding:6px 10px; border-radius:8px; cursor:pointer; flex-shrink:0; white-space:nowrap;
+  }
+
+  /* AI chat */
+  .ai-hero{text-align:center; padding:20px 16px;}
+  .ai-hero p{font-size:13px; color:var(--ink-soft); line-height:1.55; margin:6px 0 14px;}
+  .prompt-item{
+    display:flex; align-items:center; gap:10px; padding:11px 0; border-top:1px solid var(--line);
+  }
+  .prompt-item:first-child{border-top:none;}
+  .prompt-text{flex:1; font-size:13px; color:var(--ink);}
+  .copy-btn{
+    border:1px solid var(--line); background:var(--card); color:var(--ink-soft);
+    font-size:11.5px; padding:6px 10px; border-radius:8px; cursor:pointer; flex-shrink:0;
+  }
+  .ai-inline-head{display:flex; justify-content:space-between; align-items:center;}
+  .gear-btn{border:none; background:none; color:var(--ink-faint); cursor:pointer; padding:4px;}
+  .chat-box{display:flex; flex-direction:column; gap:8px; margin-top:6px;}
+  .msg{max-width:82%; padding:9px 13px; border-radius:14px; font-size:13.5px; line-height:1.45; white-space:pre-wrap;}
+  .msg.user{align-self:flex-end; background:var(--ink); color:var(--paper); border-bottom-right-radius:4px;}
+  .msg.bot{align-self:flex-start; background:var(--card); border:1px solid var(--line); border-bottom-left-radius:4px;}
+  .msg.system{align-self:center; background:#F5E4E2; color:var(--red); font-size:12px; text-align:center;}
+  .chat-input-row{display:flex; gap:8px; margin-top:12px;}
+  .chat-input-row input{
+    flex:1; border:1px solid var(--line); border-radius:20px; padding:10px 16px;
+    font-size:13.5px; font-family:inherit; background:var(--card);
+  }
+  .chat-send{
+    width:40px; height:40px; border-radius:50%; border:none; background:var(--ink); color:var(--paper);
+    flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .chat-send:disabled{background:var(--line);}
+
+  /* Schedule chips */
+  .weekday-row{display:flex; gap:6px; margin-top:10px;}
+  .weekday-chip{
+    flex:1; text-align:center; padding:9px 0; border-radius:8px; border:1px solid var(--line);
+    background:var(--card); color:var(--ink-faint); font-size:12px; cursor:pointer;
+  }
+  .weekday-chip.on{background:var(--gold); border-color:var(--gold); color:#fff; font-weight:600;}
+
+  /* Goal tracker */
+  .goal-row{display:flex; gap:8px; align-items:center; margin-top:10px;}
+  .goal-row input{flex:1; border:1px solid var(--line); border-radius:8px; padding:9px 12px; font-size:14px; background:var(--card); color:var(--ink);}
+  .goal-row button{border:none; background:var(--ink); color:var(--paper); border-radius:8px; padding:9px 14px; font-size:13px; font-weight:600; cursor:pointer;}
+  .goal-bar-wrap{margin-top:12px;}
+  .goal-bar{height:8px; border-radius:4px; background:var(--line); overflow:hidden;}
+  .goal-bar-fill{height:100%; background:var(--gold); border-radius:4px;}
+  .goal-caption{font-size:11.5px; color:var(--ink-faint); margin-top:6px;}
+
+  /* Growth chart */
+  .chart-wrap{margin-top:8px;}
+  .chart-bars{display:flex; align-items:flex-end; gap:6px; height:90px;}
+  .chart-bar{flex:1; background:var(--gold); border-radius:4px 4px 0 0; min-height:3px; position:relative;}
+  .chart-labels{display:flex; gap:6px; margin-top:6px;}
+  .chart-labels span{flex:1; text-align:center; font-size:9.5px; color:var(--ink-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+  /* Idea roulette */
+  .roulette-box{
+    background:var(--paper2); border:1px dashed var(--line); border-radius:10px;
+    padding:14px; text-align:center; margin-bottom:14px;
+  }
+  .roulette-result{font-size:14px; font-weight:600; margin:8px 0 12px; min-height:20px;}
+  .roulette-actions{display:flex; gap:8px; justify-content:center;}
+  .roulette-actions button{
+    border:none; border-radius:8px; padding:8px 14px; font-size:12.5px; font-weight:600; cursor:pointer;
+  }
+  .btn-roll{background:var(--ink); color:var(--paper);}
+  .btn-save-idea{background:#E1EEE5; color:var(--green);}
+
+  /* Tools generators */
+  .gen-row{display:flex; gap:8px; margin-bottom:12px;}
+  .gen-row input{flex:1; border:1px solid var(--line); border-radius:8px; padding:9px 12px; font-size:14px; background:var(--card); color:var(--ink);}
+  .gen-row button{border:none; background:var(--ink); color:var(--paper); border-radius:8px; padding:9px 14px; font-size:13px; font-weight:600; cursor:pointer;}
+  .gen-result-item{
+    display:flex; align-items:center; gap:8px; padding:9px 0; border-top:1px solid var(--line); font-size:13.5px;
+  }
+  .gen-result-item:first-child{border-top:none;}
+  .gen-result-item span{flex:1;}
+  .tag-chips{display:flex; flex-wrap:wrap; gap:7px; margin-top:8px;}
+  .tag-chip{
+    border:1px solid var(--line); background:var(--card); border-radius:14px; padding:5px 11px;
+    font-size:12px; color:var(--ink-soft); cursor:pointer;
+  }
+  .desc-output{
+    width:100%; min-height:120px; border:1px solid var(--line); border-radius:8px; padding:10px 12px;
+    font-size:13px; font-family:inherit; background:var(--card); color:var(--ink); margin-top:4px; resize:vertical;
+  }
+
+  /* Thumbnail builder */
+  .thumb-canvas-wrap{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px;
+    display:flex; justify-content:center; overflow:hidden; touch-action:none;
+  }
+  #thumbCanvas{width:100%; max-width:480px; height:auto; border-radius:6px; background:#0d1524; touch-action:none;}
+  .thumb-upload-btn{
+    display:block; width:100%; text-align:center; padding:11px; margin-top:10px;
+    border:1px dashed var(--line); border-radius:8px; background:var(--card); color:var(--ink-soft);
+    font-size:13px; cursor:pointer;
+  }
+  .thumb-controls{margin-top:14px;}
+  .thumb-row{display:flex; gap:8px; margin-bottom:10px;}
+  .thumb-row input[type="text"]{
+    flex:1; border:1px solid var(--line); border-radius:8px; padding:9px 12px;
+    font-size:14px; background:var(--card); color:var(--ink);
+  }
+  .thumb-preset-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
+  .thumb-preset{
+    width:38px; height:38px; border-radius:8px; border:2px solid var(--line); cursor:pointer; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px;
+  }
+  .thumb-preset.active{border-color:var(--ink);}
+  .thumb-mini-label{font-size:11.5px; color:var(--ink-faint); margin:10px 0 6px;}
+  .thumb-slider-row{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .thumb-slider-row input[type="range"]{flex:1;}
+  .thumb-slider-row span{font-size:11.5px; color:var(--ink-faint); width:34px; text-align:right;}
+  .sticker-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;}
+  .sticker-btn{
+    width:40px; height:40px; border-radius:8px; border:1px solid var(--line); background:var(--card);
+    font-size:19px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .thumb-tool-btns{display:flex; gap:8px; margin-bottom:10px;}
+  .thumb-tool-btns button{
+    flex:1; border:1px solid var(--line); background:var(--card); color:var(--ink-soft);
+    border-radius:8px; padding:9px 0; font-size:12.5px; cursor:pointer;
+  }
+  .thumb-tool-btns button.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  .thumb-download-btn{
+    width:100%; border:none; background:var(--green); color:#fff; border-radius:9px;
+    padding:12px 0; font-size:14px; font-weight:600; cursor:pointer; margin-top:4px;
+  }
+  .thumb-history{display:flex; gap:8px; overflow-x:auto; margin-top:6px;}
+  .thumb-history img{width:84px; height:47px; border-radius:6px; object-fit:cover; border:1px solid var(--line); flex-shrink:0;}
+
+  /* Editing / organization tab */
+  .rec-timer-box{
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; text-align:center;
+  }
+  .rec-timer-display{font-size:32px; font-weight:700; font-family:ui-monospace,monospace; margin:6px 0 14px;}
+  .rec-timer-btns{display:flex; gap:8px; justify-content:center;}
+  .rec-timer-btns button{
+    border:none; border-radius:9px; padding:11px 18px; font-size:13.5px; font-weight:600; cursor:pointer;
+  }
+  .btn-mark{background:var(--gold); color:#fff;}
+  .btn-timer-toggle{background:var(--ink); color:var(--paper);}
+  .btn-timer-reset{background:var(--card); color:var(--ink-soft); border:1px solid var(--line) !important;}
+  .mark-list-item{display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--line); font-size:13.5px;}
+  .mark-list-item:first-child{border-top:none;}
+  .mark-time{font-family:ui-monospace,monospace; color:var(--gold); font-weight:600; flex-shrink:0;}
+  .mark-list-item span.mtext{flex:1;}
+  .duration-row{display:flex; gap:8px; align-items:center; margin-bottom:10px;}
+  .duration-row label{font-size:12.5px; color:var(--ink-soft); width:80px; flex-shrink:0;}
+  .duration-row input{flex:1; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:14px; background:var(--card); color:var(--ink);}
+  .duration-total{font-size:13.5px; font-weight:600; margin-top:6px; text-align:right;}
+  .kbd-row{display:flex; justify-content:space-between; padding:7px 0; border-top:1px solid var(--line); font-size:13px;}
+  .kbd-row:first-child{border-top:none;}
+  .kbd{background:var(--paper2); border:1px solid var(--line); border-radius:5px; padding:2px 8px; font-family:ui-monospace,monospace; font-size:12px;}
+  .shorts-result{text-align:center; padding:14px; border-radius:10px; margin-top:10px; font-weight:600; font-size:14px;}
+  .shorts-result.yes{background:#E1EEE5; color:var(--green);}
+  .shorts-result.no{background:#F5E4E2; color:var(--red);}
+  .cross-list{display:flex; flex-direction:column; gap:0;}
+  .cross-item{display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--line);}
+  .cross-item:first-child{border-top:none;}
+  .cross-item span{flex:1; font-size:14px;}
+  .milestone-row{display:flex; gap:8px; margin-bottom:10px;}
+  .milestone-row input{flex:1; border:1px solid var(--line); border-radius:8px; padding:9px 12px; font-size:14px; background:var(--card); color:var(--ink);}
+  .milestone-item{display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-top:1px solid var(--line); font-size:13.5px;}
+  .milestone-item:first-child{border-top:none;}
+  .streak-box{text-align:center; padding:16px;}
+  .streak-num{font-size:38px; font-weight:800; color:var(--gold);}
+  .streak-label{font-size:12px; color:var(--ink-faint); margin-top:2px;}
+
+  /* FAB */
+  .fab{
+    position:fixed; right:18px; bottom:88px;
+    width:52px; height:52px; border-radius:50%;
+    background:var(--ink); color:var(--paper);
+    border:none; font-size:26px; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 14px rgba(27,42,74,0.28); cursor:pointer; z-index:20;
+  }
+
+  nav{
+    position:fixed; left:0; right:0; bottom:0;
+    background:var(--card); border-top:1px solid var(--line);
+    display:flex; padding-bottom:env(safe-area-inset-bottom);
+    z-index:15;
+  }
+  nav button{
+    flex:1; background:none; border:none; padding:10px 0 8px;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    color:var(--ink-faint); font-size:11px; cursor:pointer;
+  }
+  nav button.active{color:var(--ink);}
+  nav svg{width:22px; height:22px;}
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(27,42,74,0.35);
+    display:flex; align-items:flex-end; z-index:30;
+    opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .overlay.open{opacity:1; pointer-events:auto;}
+  .sheet{
+    background:var(--paper2); width:100%;
+    border-radius:18px 18px 0 0; padding:20px 20px calc(24px + env(safe-area-inset-bottom));
+    transform:translateY(100%); transition:transform .25s ease;
+    max-height:82vh; overflow-y:auto;
+  }
+  .overlay.open .sheet{transform:translateY(0);}
+  .sheet h3{margin-bottom:14px; font-size:17px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:12px; color:var(--ink-soft); margin-bottom:5px;}
+  .field input, .field textarea{
+    width:100%; border:1px solid var(--line); border-radius:8px; padding:10px 12px;
+    font-size:14.5px; font-family:inherit; background:var(--card); color:var(--ink);
+  }
+  .field textarea{min-height:80px; resize:vertical;}
+  .sheet-actions{display:flex; gap:10px; margin-top:16px;}
+  .sheet-actions button{
+    flex:1; padding:12px 0; border-radius:9px; border:none; font-size:14px; font-weight:600; cursor:pointer;
+  }
+  .btn-cancel{background:var(--card); color:var(--ink-soft); border:1px solid var(--line) !important;}
+  .btn-save{background:var(--ink); color:var(--paper);}
+
+  .toast{
+    position:fixed; top:14px; left:50%; transform:translateX(-50%) translateY(-40px);
+    background:var(--ink); color:var(--paper); padding:9px 16px; border-radius:20px;
+    font-size:12.5px; opacity:0; transition:all .25s; z-index:50; white-space:nowrap;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="headerTitle">Заметки</h1>
+  <span class="date" id="headerDate"></span>
+</header>
+
+<main>
+  <!-- NOTES -->
+  <div class="view active" id="view-notes"></div>
+  <!-- FLASHCARDS -->
+  <div class="view" id="view-cards"></div>
+  <!-- PLANNER -->
+  <div class="view" id="view-plan"></div>
+  <!-- YOUTUBE / MINECRAFT -->
+  <div class="view" id="view-yt">
+    <div class="yt-subnav">
+      <button class="yt-sub-btn active" data-sub="channel">Канал</button>
+      <button class="yt-sub-btn" data-sub="videos">Ролики</button>
+      <button class="yt-sub-btn" data-sub="ideas">Идеи</button>
+      <button class="yt-sub-btn" data-sub="thumbs">Превью</button>
+      <button class="yt-sub-btn" data-sub="edit">Монтаж</button>
+      <button class="yt-sub-btn" data-sub="tools">Инструменты</button>
+      <button class="yt-sub-btn" data-sub="ai">ИИ-чат</button>
+    </div>
+    <div class="yt-sub-view active" id="yt-sub-channel">
+      <div id="yt-channel"></div>
+    </div>
+    <div class="yt-sub-view" id="yt-sub-videos">
+      <div id="yt-drafts"></div>
+    </div>
+    <div class="yt-sub-view" id="yt-sub-ideas">
+      <div id="yt-ideas"></div>
+    </div>
+    <div class="yt-sub-view" id="yt-sub-thumbs">
+      <div id="yt-thumbs"></div>
+    </div>
+    <div class="yt-sub-view" id="yt-sub-edit">
+      <div id="yt-edit"></div>
+    </div>
+    <div class="yt-sub-view" id="yt-sub-tools">
+      <div id="yt-tools"></div>
+    </div>
+    <div class="yt-sub-view" id="yt-sub-ai">
+      <div id="yt-ai"></div>
+    </div>
+  </div>
+</main>
+
+<button class="fab" id="fab">+</button>
+
+<nav>
+  <button class="tab active" data-tab="notes">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M8 12h8M8 16h5"/></svg>
+    Заметки
+  </button>
+  <button class="tab" data-tab="cards">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="6" width="14" height="10" rx="2"/><path d="M7 20h14a2 2 0 0 0 2-2V9"/></svg>
+    Карточки
+  </button>
+  <button class="tab" data-tab="plan">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M8 15l2 2 4-4"/></svg>
+    План
+  </button>
+  <button class="tab" data-tab="yt">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="14" height="16" rx="2"/><path d="M17 9l4-2v10l-4-2"/><path d="M8 9a1 1 0 0 1 1.5-.87l3 1.87-3 1.87A1 1 0 0 1 8 11z" fill="currentColor" stroke="none"/></svg>
+    Ютуб
+  </button>
+</nav>
+
+<div class="overlay" id="overlay">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+//---------------------------------------------------------------------
+//
+// QR Code Generator for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+//
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+
+var qrcode = function() {
+
+  var qrcode = function(typeNumber, errorCorrectionLevel) {
+
+    var PAD0 = 0xEC;
+    var PAD1 = 0x11;
+
+    var _typeNumber = typeNumber;
+    var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+    var _modules = null;
+    var _moduleCount = 0;
+    var _dataCache = null;
+    var _dataList = new Array();
+
+    var _this = {};
+
+    var makeImpl = function(test, maskPattern) {
+
+      _moduleCount = _typeNumber * 4 + 17;
+      _modules = function(moduleCount) {
+        var modules = new Array(moduleCount);
+        for (var row = 0; row < moduleCount; row += 1) {
+          modules[row] = new Array(moduleCount);
+          for (var col = 0; col < moduleCount; col += 1) {
+            modules[row][col] = null;
+          }
+        }
+        return modules;
+      }(_moduleCount);
+
+      setupPositionProbePattern(0, 0);
+      setupPositionProbePattern(_moduleCount - 7, 0);
+      setupPositionProbePattern(0, _moduleCount - 7);
+      setupPositionAdjustPattern();
+      setupTimingPattern();
+      setupTypeInfo(test, maskPattern);
+
+      if (_typeNumber >= 7) {
+        setupTypeNumber(test);
+      }
+
+      if (_dataCache == null) {
+        _dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+      }
+
+      mapData(_dataCache, maskPattern);
+    };
+
+    var setupPositionProbePattern = function(row, col) {
+
+      for (var r = -1; r <= 7; r += 1) {
+
+        if (row + r <= -1 || _moduleCount <= row + r) continue;
+
+        for (var c = -1; c <= 7; c += 1) {
+
+          if (col + c <= -1 || _moduleCount <= col + c) continue;
+
+          if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+              || (0 <= c && c <= 6 && (r == 0 || r == 6) )
+              || (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+            _modules[row + r][col + c] = true;
+          } else {
+            _modules[row + r][col + c] = false;
+          }
+        }
+      }
+    };
+
+    var getBestMaskPattern = function() {
+
+      var minLostPoint = 0;
+      var pattern = 0;
+
+      for (var i = 0; i < 8; i += 1) {
+
+        makeImpl(true, i);
+
+        var lostPoint = QRUtil.getLostPoint(_this);
+
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+        }
+      }
+
+      return pattern;
+    };
+
+    var setupTimingPattern = function() {
+
+      for (var r = 8; r < _moduleCount - 8; r += 1) {
+        if (_modules[r][6] != null) {
+          continue;
+        }
+        _modules[r][6] = (r % 2 == 0);
+      }
+
+      for (var c = 8; c < _moduleCount - 8; c += 1) {
+        if (_modules[6][c] != null) {
+          continue;
+        }
+        _modules[6][c] = (c % 2 == 0);
+      }
+    };
+
+    var setupPositionAdjustPattern = function() {
+
+      var pos = QRUtil.getPatternPosition(_typeNumber);
+
+      for (var i = 0; i < pos.length; i += 1) {
+
+        for (var j = 0; j < pos.length; j += 1) {
+
+          var row = pos[i];
+          var col = pos[j];
+
+          if (_modules[row][col] != null) {
+            continue;
+          }
+
+          for (var r = -2; r <= 2; r += 1) {
+
+            for (var c = -2; c <= 2; c += 1) {
+
+              if (r == -2 || r == 2 || c == -2 || c == 2
+                  || (r == 0 && c == 0) ) {
+                _modules[row + r][col + c] = true;
+              } else {
+                _modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var setupTypeNumber = function(test) {
+
+      var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+      }
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    };
+
+    var setupTypeInfo = function(test, maskPattern) {
+
+      var data = (_errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 6) {
+          _modules[i][8] = mod;
+        } else if (i < 8) {
+          _modules[i + 1][8] = mod;
+        } else {
+          _modules[_moduleCount - 15 + i][8] = mod;
+        }
+      }
+
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 8) {
+          _modules[8][_moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          _modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          _modules[8][15 - i - 1] = mod;
+        }
+      }
+
+      _modules[_moduleCount - 8][8] = (!test);
+    };
+
+    var mapData = function(data, maskPattern) {
+
+      var inc = -1;
+      var row = _moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      var maskFunc = QRUtil.getMaskFunction(maskPattern);
+
+      for (var col = _moduleCount - 1; col > 0; col -= 2) {
+
+        if (col == 6) col -= 1;
+
+        while (true) {
+
+          for (var c = 0; c < 2; c += 1) {
+
+            if (_modules[row][col - c] == null) {
+
+              var dark = false;
+
+              if (byteIndex < data.length) {
+                dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+              }
+
+              var mask = maskFunc(row, col - c);
+
+              if (mask) {
+                dark = !dark;
+              }
+
+              _modules[row][col - c] = dark;
+              bitIndex -= 1;
+
+              if (bitIndex == -1) {
+                byteIndex += 1;
+                bitIndex = 7;
+              }
+            }
+          }
+
+          row += inc;
+
+          if (row < 0 || _moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    };
+
+    var createBytes = function(buffer, rsBlocks) {
+
+      var offset = 0;
+
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+
+      for (var r = 0; r < rsBlocks.length; r += 1) {
+
+        var dcCount = rsBlocks[r].dataCount;
+        var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+
+        dcdata[r] = new Array(dcCount);
+
+        for (var i = 0; i < dcdata[r].length; i += 1) {
+          dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+        }
+        offset += dcCount;
+
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i += 1) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+        }
+      }
+
+      var totalCodeCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalCodeCount += rsBlocks[i].totalCount;
+      }
+
+      var data = new Array(totalCodeCount);
+      var index = 0;
+
+      for (var i = 0; i < maxDcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < dcdata[r].length) {
+            data[index] = dcdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      for (var i = 0; i < maxEcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < ecdata[r].length) {
+            data[index] = ecdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      return data;
+    };
+
+    var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+
+      var buffer = qrBitBuffer();
+
+      for (var i = 0; i < dataList.length; i += 1) {
+        var data = dataList[i];
+        buffer.put(data.getMode(), 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+        data.write(buffer);
+      }
+
+      var totalDataCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalDataCount += rsBlocks[i].dataCount;
+      }
+
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw new Error('code length overflow. ('
+          + buffer.getLengthInBits()
+          + '>'
+          + totalDataCount * 8
+          + ')');
+      }
+
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+
+      while (true) {
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD0, 8);
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD1, 8);
+      }
+
+      return createBytes(buffer, rsBlocks);
+    };
+
+    _this.addData = function(data) {
+      var newData = qr8BitByte(data);
+      _dataList.push(newData);
+      _dataCache = null;
+    };
+
+    _this.isDark = function(row, col) {
+      if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+        throw new Error(row + ',' + col);
+      }
+      return _modules[row][col];
+    };
+
+    _this.getModuleCount = function() {
+      return _moduleCount;
+    };
+
+    _this.make = function() {
+      makeImpl(false, getBestMaskPattern() );
+    };
+
+    _this.createSvgTag = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var c, mc, r, mr, qrSvg='', rect;
+
+      rect = 'l' + cellSize + ',0 0,' + cellSize +
+        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+
+      qrSvg += '<svg';
+      qrSvg += ' width="' + size + 'px"';
+      qrSvg += ' height="' + size + 'px"';
+      qrSvg += ' xmlns="http://www.w3.org/2000/svg"';
+      qrSvg += '>';
+      qrSvg += '<rect width="100%" height="100%" fill="white"/>';
+      qrSvg += '<path d="';
+
+      for (r = 0; r < _this.getModuleCount(); r += 1) {
+        mr = r * cellSize + margin;
+        for (c = 0; c < _this.getModuleCount(); c += 1) {
+          if (_this.isDark(r, c) ) {
+            mc = c*cellSize+margin;
+            qrSvg += 'M' + mc + ',' + mr + rect;
+          }
+        }
+      }
+
+      qrSvg += '" stroke="transparent" fill="black"/>';
+      qrSvg += '</svg>';
+
+      return qrSvg;
+    };
+
+    return _this;
+  };
+
+  qrcode.stringToBytes = function(s) {
+    var bytes = new Array();
+    for (var i = 0; i < s.length; i += 1) {
+      var c = s.charCodeAt(i);
+      bytes.push(c & 0xff);
+    }
+    return bytes;
+  };
+
+  var QRMode = {
+    MODE_NUMBER :    1 << 0,
+    MODE_ALPHA_NUM : 1 << 1,
+    MODE_8BIT_BYTE : 1 << 2,
+    MODE_KANJI :     1 << 3
+  };
+
+  var QRErrorCorrectionLevel = {
+    L : 1,
+    M : 0,
+    Q : 3,
+    H : 2
+  };
+
+  var QRMaskPattern = {
+    PATTERN000 : 0,
+    PATTERN001 : 1,
+    PATTERN010 : 2,
+    PATTERN011 : 3,
+    PATTERN100 : 4,
+    PATTERN101 : 5,
+    PATTERN110 : 6,
+    PATTERN111 : 7
+  };
+
+  var QRUtil = function() {
+
+    var PATTERN_POSITION_TABLE = [
+      [],
+      [6, 18],
+      [6, 22],
+      [6, 26],
+      [6, 30],
+      [6, 34],
+      [6, 22, 38],
+      [6, 24, 42],
+      [6, 26, 46],
+      [6, 28, 50],
+      [6, 30, 54],
+      [6, 32, 58],
+      [6, 34, 62],
+      [6, 26, 46, 66],
+      [6, 26, 48, 70],
+      [6, 26, 50, 74],
+      [6, 30, 54, 78],
+      [6, 30, 56, 82],
+      [6, 30, 58, 86],
+      [6, 34, 62, 90],
+      [6, 28, 50, 72, 94],
+      [6, 26, 50, 74, 98],
+      [6, 30, 54, 78, 102],
+      [6, 28, 54, 80, 106],
+      [6, 32, 58, 84, 110],
+      [6, 30, 58, 86, 114],
+      [6, 34, 62, 90, 118],
+      [6, 26, 50, 74, 98, 122],
+      [6, 30, 54, 78, 102, 126],
+      [6, 26, 52, 78, 104, 130],
+      [6, 30, 56, 82, 108, 134],
+      [6, 34, 60, 86, 112, 138],
+      [6, 30, 58, 86, 114, 142],
+      [6, 34, 62, 90, 118, 146],
+      [6, 30, 54, 78, 102, 126, 150],
+      [6, 24, 50, 76, 102, 128, 154],
+      [6, 28, 54, 80, 106, 132, 158],
+      [6, 32, 58, 84, 110, 136, 162],
+      [6, 26, 54, 82, 110, 138, 166],
+      [6, 30, 58, 86, 114, 142, 170]
+    ];
+    var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+    var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+    var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+    var _this = {};
+
+    var getBCHDigit = function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit += 1;
+        data >>>= 1;
+      }
+      return digit;
+    };
+
+    _this.getBCHTypeInfo = function(data) {
+      var d = data << 10;
+      while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+        d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+      }
+      return ( (data << 10) | d) ^ G15_MASK;
+    };
+
+    _this.getBCHTypeNumber = function(data) {
+      var d = data << 12;
+      while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+        d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+      }
+      return (data << 12) | d;
+    };
+
+    _this.getPatternPosition = function(typeNumber) {
+      return PATTERN_POSITION_TABLE[typeNumber - 1];
+    };
+
+    _this.getMaskFunction = function(maskPattern) {
+
+      switch (maskPattern) {
+
+      case QRMaskPattern.PATTERN000 :
+        return function(i, j) { return (i + j) % 2 == 0; };
+      case QRMaskPattern.PATTERN001 :
+        return function(i, j) { return i % 2 == 0; };
+      case QRMaskPattern.PATTERN010 :
+        return function(i, j) { return j % 3 == 0; };
+      case QRMaskPattern.PATTERN011 :
+        return function(i, j) { return (i + j) % 3 == 0; };
+      case QRMaskPattern.PATTERN100 :
+        return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+      case QRMaskPattern.PATTERN101 :
+        return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+      case QRMaskPattern.PATTERN110 :
+        return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+      case QRMaskPattern.PATTERN111 :
+        return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+
+      default :
+        throw new Error('bad maskPattern:' + maskPattern);
+      }
+    };
+
+    _this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+      var a = qrPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i += 1) {
+        a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+      }
+      return a;
+    };
+
+    _this.getLengthInBits = function(mode, type) {
+
+      if (1 <= type && type < 10) {
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 10;
+        case QRMode.MODE_ALPHA_NUM : return 9;
+        case QRMode.MODE_8BIT_BYTE : return 8;
+        case QRMode.MODE_KANJI     : return 8;
+        default :
+          throw new Error('mode:' + mode);
+        }
+
+      } else if (type < 27) {
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 12;
+        case QRMode.MODE_ALPHA_NUM : return 11;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 10;
+        default :
+          throw new Error('mode:' + mode);
+        }
+
+      } else if (type < 41) {
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 14;
+        case QRMode.MODE_ALPHA_NUM : return 13;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 12;
+        default :
+          throw new Error('mode:' + mode);
+        }
+
+      } else {
+        throw new Error('type:' + type);
+      }
+    };
+
+    _this.getLostPoint = function(qrcode) {
+
+      var moduleCount = qrcode.getModuleCount();
+
+      var lostPoint = 0;
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount; col += 1) {
+
+          var sameCount = 0;
+          var dark = qrcode.isDark(row, col);
+
+          for (var r = -1; r <= 1; r += 1) {
+
+            if (row + r < 0 || moduleCount <= row + r) {
+              continue;
+            }
+
+            for (var c = -1; c <= 1; c += 1) {
+
+              if (col + c < 0 || moduleCount <= col + c) {
+                continue;
+              }
+
+              if (r == 0 && c == 0) {
+                continue;
+              }
+
+              if (dark == qrcode.isDark(row + r, col + c) ) {
+                sameCount += 1;
+              }
+            }
+          }
+
+          if (sameCount > 5) {
+            lostPoint += (3 + sameCount - 5);
+          }
+        }
+      };
+
+      for (var row = 0; row < moduleCount - 1; row += 1) {
+        for (var col = 0; col < moduleCount - 1; col += 1) {
+          var count = 0;
+          if (qrcode.isDark(row, col) ) count += 1;
+          if (qrcode.isDark(row + 1, col) ) count += 1;
+          if (qrcode.isDark(row, col + 1) ) count += 1;
+          if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+          if (count == 0 || count == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount - 6; col += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row, col + 1)
+              &&  qrcode.isDark(row, col + 2)
+              &&  qrcode.isDark(row, col + 3)
+              &&  qrcode.isDark(row, col + 4)
+              && !qrcode.isDark(row, col + 5)
+              &&  qrcode.isDark(row, col + 6) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount - 6; row += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row + 1, col)
+              &&  qrcode.isDark(row + 2, col)
+              &&  qrcode.isDark(row + 3, col)
+              &&  qrcode.isDark(row + 4, col)
+              && !qrcode.isDark(row + 5, col)
+              &&  qrcode.isDark(row + 6, col) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      var darkCount = 0;
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount; row += 1) {
+          if (qrcode.isDark(row, col) ) {
+            darkCount += 1;
+          }
+        }
+      }
+
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+
+      return lostPoint;
+    };
+
+    return _this;
+  }();
+
+  var QRMath = function() {
+
+    var EXP_TABLE = new Array(256);
+    var LOG_TABLE = new Array(256);
+
+    for (var i = 0; i < 8; i += 1) {
+      EXP_TABLE[i] = 1 << i;
+    }
+    for (var i = 8; i < 256; i += 1) {
+      EXP_TABLE[i] = EXP_TABLE[i - 4]
+        ^ EXP_TABLE[i - 5]
+        ^ EXP_TABLE[i - 6]
+        ^ EXP_TABLE[i - 8];
+    }
+    for (var i = 0; i < 255; i += 1) {
+      LOG_TABLE[EXP_TABLE[i] ] = i;
+    }
+
+    var _this = {};
+
+    _this.glog = function(n) {
+
+      if (n < 1) {
+        throw new Error('glog(' + n + ')');
+      }
+
+      return LOG_TABLE[n];
+    };
+
+    _this.gexp = function(n) {
+
+      while (n < 0) {
+        n += 255;
+      }
+
+      while (n >= 256) {
+        n -= 255;
+      }
+
+      return EXP_TABLE[n];
+    };
+
+    return _this;
+  }();
+
+  function qrPolynomial(num, shift) {
+
+    if (typeof num.length == 'undefined') {
+      throw new Error(num.length + '/' + shift);
+    }
+
+    var _num = function() {
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset += 1;
+      }
+      var _num = new Array(num.length - offset + shift);
+      for (var i = 0; i < num.length - offset; i += 1) {
+        _num[i] = num[i + offset];
+      }
+      return _num;
+    }();
+
+    var _this = {};
+
+    _this.getAt = function(index) {
+      return _num[index];
+    };
+
+    _this.getLength = function() {
+      return _num.length;
+    };
+
+    _this.multiply = function(e) {
+
+      var num = new Array(_this.getLength() + e.getLength() - 1);
+
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        for (var j = 0; j < e.getLength(); j += 1) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+        }
+      }
+
+      return qrPolynomial(num, 0);
+    };
+
+    _this.mod = function(e) {
+
+      if (_this.getLength() - e.getLength() < 0) {
+        return _this;
+      }
+
+      var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+
+      var num = new Array(_this.getLength() );
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        num[i] = _this.getAt(i);
+      }
+
+      for (var i = 0; i < e.getLength(); i += 1) {
+        num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+      }
+
+      return qrPolynomial(num, 0).mod(e);
+    };
+
+    return _this;
+  };
+
+  var QRRSBlock = function() {
+
+    var RS_BLOCK_TABLE = [
+
+      [1, 26, 19],
+      [1, 26, 16],
+      [1, 26, 13],
+      [1, 26, 9],
+
+      [1, 44, 34],
+      [1, 44, 28],
+      [1, 44, 22],
+      [1, 44, 16],
+
+      [1, 70, 55],
+      [1, 70, 44],
+      [2, 35, 17],
+      [2, 35, 13],
+
+      [1, 100, 80],
+      [2, 50, 32],
+      [2, 50, 24],
+      [4, 25, 9],
+
+      [1, 134, 108],
+      [2, 67, 43],
+      [2, 33, 15, 2, 34, 16],
+      [2, 33, 11, 2, 34, 12],
+
+      [2, 86, 68],
+      [4, 43, 27],
+      [4, 43, 19],
+      [4, 43, 15],
+
+      [2, 98, 78],
+      [4, 49, 31],
+      [2, 32, 14, 4, 33, 15],
+      [4, 39, 13, 1, 40, 14],
+
+      [2, 121, 97],
+      [2, 60, 38, 2, 61, 39],
+      [4, 40, 18, 2, 41, 19],
+      [4, 40, 14, 2, 41, 15],
+
+      [2, 146, 116],
+      [3, 58, 36, 2, 59, 37],
+      [4, 36, 16, 4, 37, 17],
+      [4, 36, 12, 4, 37, 13],
+
+      [2, 86, 68, 2, 87, 69],
+      [4, 69, 43, 1, 70, 44],
+      [6, 43, 19, 2, 44, 20],
+      [6, 43, 15, 2, 44, 16],
+
+      [4, 101, 81],
+      [1, 80, 50, 4, 81, 51],
+      [4, 50, 22, 4, 51, 23],
+      [3, 36, 12, 8, 37, 13],
+
+      [2, 116, 92, 2, 117, 93],
+      [6, 58, 36, 2, 59, 37],
+      [4, 46, 20, 6, 47, 21],
+      [7, 42, 14, 4, 43, 15],
+
+      [4, 133, 107],
+      [8, 59, 37, 1, 60, 38],
+      [8, 44, 20, 4, 45, 21],
+      [12, 33, 11, 4, 34, 12],
+
+      [3, 145, 115, 1, 146, 116],
+      [4, 64, 40, 5, 65, 41],
+      [11, 36, 16, 5, 37, 17],
+      [11, 36, 12, 5, 37, 13],
+
+      [5, 109, 87, 1, 110, 88],
+      [5, 65, 41, 5, 66, 42],
+      [5, 54, 24, 7, 55, 25],
+      [11, 36, 12, 7, 37, 13],
+
+      [5, 122, 98, 1, 123, 99],
+      [7, 73, 45, 3, 74, 46],
+      [15, 43, 19, 2, 44, 20],
+      [3, 45, 15, 13, 46, 16],
+
+      [1, 135, 107, 5, 136, 108],
+      [10, 74, 46, 1, 75, 47],
+      [1, 50, 22, 15, 51, 23],
+      [2, 42, 14, 17, 43, 15],
+
+      [5, 150, 120, 1, 151, 121],
+      [9, 69, 43, 4, 70, 44],
+      [17, 50, 22, 1, 51, 23],
+      [2, 42, 14, 19, 43, 15],
+
+      [3, 141, 113, 4, 142, 114],
+      [3, 70, 44, 11, 71, 45],
+      [17, 47, 21, 4, 48, 22],
+      [9, 39, 13, 16, 40, 14],
+
+      [3, 135, 107, 5, 136, 108],
+      [3, 67, 41, 13, 68, 42],
+      [15, 54, 24, 5, 55, 25],
+      [15, 43, 15, 10, 44, 16],
+
+      [4, 144, 116, 4, 145, 117],
+      [17, 68, 42],
+      [17, 50, 22, 6, 51, 23],
+      [19, 46, 16, 6, 47, 17],
+
+      [2, 139, 111, 7, 140, 112],
+      [17, 74, 46],
+      [7, 54, 24, 16, 55, 25],
+      [34, 37, 13],
+
+      [4, 151, 121, 5, 152, 122],
+      [4, 75, 47, 14, 76, 48],
+      [11, 54, 24, 14, 55, 25],
+      [16, 45, 15, 14, 46, 16],
+
+      [6, 147, 117, 4, 148, 118],
+      [6, 73, 45, 14, 74, 46],
+      [11, 54, 24, 16, 55, 25],
+      [30, 46, 16, 2, 47, 17],
+
+      [8, 132, 106, 4, 133, 107],
+      [8, 75, 47, 13, 76, 48],
+      [7, 54, 24, 22, 55, 25],
+      [22, 45, 15, 13, 46, 16],
+
+      [10, 142, 114, 2, 143, 115],
+      [19, 74, 46, 4, 75, 47],
+      [28, 50, 22, 6, 51, 23],
+      [33, 46, 16, 4, 47, 17],
+
+      [8, 152, 122, 4, 153, 123],
+      [22, 73, 45, 3, 74, 46],
+      [8, 53, 23, 26, 54, 24],
+      [12, 45, 15, 28, 46, 16],
+
+      [3, 147, 117, 10, 148, 118],
+      [3, 73, 45, 23, 74, 46],
+      [4, 54, 24, 31, 55, 25],
+      [11, 45, 15, 31, 46, 16],
+
+      [7, 146, 116, 7, 147, 117],
+      [21, 73, 45, 7, 74, 46],
+      [1, 53, 23, 37, 54, 24],
+      [19, 45, 15, 26, 46, 16],
+
+      [5, 145, 115, 10, 146, 116],
+      [19, 75, 47, 10, 76, 48],
+      [15, 54, 24, 25, 55, 25],
+      [23, 45, 15, 25, 46, 16],
+
+      [13, 145, 115, 3, 146, 116],
+      [2, 74, 46, 29, 75, 47],
+      [42, 54, 24, 1, 55, 25],
+      [23, 45, 15, 28, 46, 16],
+
+      [17, 145, 115],
+      [10, 74, 46, 23, 75, 47],
+      [10, 54, 24, 35, 55, 25],
+      [19, 45, 15, 35, 46, 16],
+
+      [17, 145, 115, 1, 146, 116],
+      [14, 74, 46, 21, 75, 47],
+      [29, 54, 24, 19, 55, 25],
+      [11, 45, 15, 46, 46, 16],
+
+      [13, 145, 115, 6, 146, 116],
+      [14, 74, 46, 23, 75, 47],
+      [44, 54, 24, 7, 55, 25],
+      [59, 46, 16, 1, 47, 17],
+
+      [12, 151, 121, 7, 152, 122],
+      [12, 75, 47, 26, 76, 48],
+      [39, 54, 24, 14, 55, 25],
+      [22, 45, 15, 41, 46, 16],
+
+      [6, 151, 121, 14, 152, 122],
+      [6, 75, 47, 34, 76, 48],
+      [46, 54, 24, 10, 55, 25],
+      [2, 45, 15, 64, 46, 16],
+
+      [17, 152, 122, 4, 153, 123],
+      [29, 74, 46, 14, 75, 47],
+      [49, 54, 24, 10, 55, 25],
+      [24, 45, 15, 46, 46, 16],
+
+      [4, 152, 122, 18, 153, 123],
+      [13, 74, 46, 32, 75, 47],
+      [48, 54, 24, 14, 55, 25],
+      [42, 45, 15, 32, 46, 16],
+
+      [20, 147, 117, 4, 148, 118],
+      [40, 75, 47, 7, 76, 48],
+      [43, 54, 24, 22, 55, 25],
+      [10, 45, 15, 67, 46, 16],
+
+      [19, 148, 118, 6, 149, 119],
+      [18, 75, 47, 31, 76, 48],
+      [34, 54, 24, 34, 55, 25],
+      [20, 45, 15, 61, 46, 16]
+    ];
+
+    var qrRSBlock = function(totalCount, dataCount) {
+      var _this = {};
+      _this.totalCount = totalCount;
+      _this.dataCount = dataCount;
+      return _this;
+    };
+
+    var _this = {};
+
+    var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+
+      switch(errorCorrectionLevel) {
+      case QRErrorCorrectionLevel.L :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectionLevel.M :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectionLevel.Q :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectionLevel.H :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default :
+        return undefined;
+      }
+    };
+
+    _this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+
+      var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+
+      if (typeof rsBlock == 'undefined') {
+        throw new Error('bad rs block @ typeNumber:' + typeNumber +
+            '/errorCorrectionLevel:' + errorCorrectionLevel);
+      }
+
+      var length = rsBlock.length / 3;
+
+      var list = new Array();
+
+      for (var i = 0; i < length; i += 1) {
+
+        var count = rsBlock[i * 3 + 0];
+        var totalCount = rsBlock[i * 3 + 1];
+        var dataCount = rsBlock[i * 3 + 2];
+
+        for (var j = 0; j < count; j += 1) {
+          list.push(qrRSBlock(totalCount, dataCount) );
+        }
+      }
+
+      return list;
+    };
+
+    return _this;
+  }();
+
+  var qrBitBuffer = function() {
+
+    var _buffer = new Array();
+    var _length = 0;
+
+    var _this = {};
+
+    _this.getBuffer = function() {
+      return _buffer;
+    };
+
+    _this.getAt = function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+    };
+
+    _this.put = function(num, length) {
+      for (var i = 0; i < length; i += 1) {
+        _this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+      }
+    };
+
+    _this.getLengthInBits = function() {
+      return _length;
+    };
+
+    _this.putBit = function(bit) {
+
+      var bufIndex = Math.floor(_length / 8);
+      if (_buffer.length <= bufIndex) {
+        _buffer.push(0);
+      }
+
+      if (bit) {
+        _buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+      }
+
+      _length += 1;
+    };
+
+    return _this;
+  };
+
+  var qr8BitByte = function(data) {
+
+    var _mode = QRMode.MODE_8BIT_BYTE;
+    var _data = data;
+    var _bytes = qrcode.stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _bytes.length;
+    };
+
+    _this.write = function(buffer) {
+      for (var i = 0; i < _bytes.length; i += 1) {
+        buffer.put(_bytes[i], 8);
+      }
+    };
+
+    return _this;
+  };
+
+  return qrcode;
+}();
+
+</script>
+<script>
+const state = { notes: [], cards: [], tasks: [], videos: [], ideas: [], channel: null, channelLoading:false, giga: null, gigaSending:false, schedule: null, goal: null, rouletteResult: null, thumbHistory: [], prerecordChecklist: null, editChecklist: null, inspiration: [], collabs: [], milestones: [], streakLog: [], introOutro: null, commentReplies: [], thumb: { bgImage:null, objects:[], fillColor:'#FFE600', strokeColor:'#C1443D', fontSize:64, tool:'move', dragIdx:-1, drawStart:null }, tab: 'notes', ytSub: 'channel', reviewQueue: [], reviewIndex: 0, reviewFlipped: false, expandedVideo: null };
+const PROMPT_TEMPLATES = [
+  'Придумай 10 идей роликов про Minecraft для моего канала, чтобы зацепить новых зрителей.',
+  'Напиши цепляющий заголовок и описание для ролика про постройку фермы мобов в Minecraft.',
+  'Составь план сценария ролика «100 дней выживания в Minecraft без читов» по пунктам.',
+  'Придумай смешные и запоминающиеся названия для сериала летсплеев по Minecraft.',
+  'Напиши текст для конца видео с призывом подписаться, для майнкрафт-канала.'
+];
+const WEEKDAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+const TITLE_TEMPLATES = [
+  'Я {w} в Minecraft — и это изменило всё',
+  'ТОП-5 способов {w} в Minecraft, о которых ты не знал',
+  'Что будет, если {w} в Minecraft 100 раз?',
+  'Секретный способ {w}, который скрывают ноубы',
+  '{w} в Minecraft — разбираем по шагам',
+  'Я обманул друзей с помощью {w} в Minecraft'
+];
+const ROULETTE_MOBS = ['крипер','зомби','скелет','паук','эндермен','иссушитель','пиглин','дракон Края','железный голем','страж','аксолотль'];
+const ROULETTE_FORMATS = ['выживание на 100 дней','спидран','челлендж без предметов','дуэль один на один','хардкор-ловушка','постройка целого города','фарм ресурсов на скорость','ролевая история','разбор мифов','топ-подборка построек'];
+const MC_TAGS = ['Minecraft','Майнкрафт','Minecraft на русском','летсплей','выживание в Minecraft','Minecraft приколы','Minecraft постройки','Minecraft моды','майнкрафт видео','minecraft gameplay'];
+const CHECKLIST_STEPS = [
+  { key: 'idea', label: 'Идея / сценарий ролика' },
+  { key: 'recorded', label: 'Запись игры в Minecraft' },
+  { key: 'edited', label: 'Монтаж' },
+  { key: 'thumb', label: 'Превью и название' },
+  { key: 'uploaded', label: 'Публикация на канал' },
+];
+const CROSSPOST_PLATFORMS = [
+  { key: 'shorts', label: 'YouTube Shorts' },
+  { key: 'vk', label: 'VK Видео' },
+  { key: 'tiktok', label: 'TikTok' },
+  { key: 'dzen', label: 'Дзен' },
+];
+const THUMB_PRESETS = [
+  { bg:'#1a1a1a', fill:'#FFE600', stroke:'#C1443D' },
+  { bg:'#1a1a1a', fill:'#FF3B30', stroke:'#000000' },
+  { bg:'#1a1a1a', fill:'#3FE0C8', stroke:'#12324A' },
+  { bg:'#1a1a1a', fill:'#FFFFFF', stroke:'#3F7D58' },
+];
+const THUMB_PHRASES = ['НЕ ВЕРИШЬ?!','ЗА 100 ДНЕЙ','ШОК','НОВЫЙ РЕКОРД','ЭТО БЫЛО БЛИЗКО','САМЫЙ СЛОЖНЫЙ','ФИНАЛ','СЕКРЕТ РАСКРЫТ'];
+const THUMB_STICKERS = ['🔥','💀','⚡','😱','💎','⚔️','🏆','❗'];
+const PRERECORD_STEPS = [
+  { key:'mic', label:'Проверить микрофон и уровень звука' },
+  { key:'obs', label:'Проверить настройки записи (OBS/др.)' },
+  { key:'res', label:'Разрешение экрана и FPS' },
+  { key:'space', label:'Свободное место на диске' },
+  { key:'light', label:'Освещение / вебкамера, если нужна' },
+];
+const EDIT_STEPS = [
+  { key:'trim', label:'Обрезать начало и конец' },
+  { key:'music', label:'Добавить музыку' },
+  { key:'subs', label:'Субтитры / текстовые вставки' },
+  { key:'color', label:'Цветокоррекция' },
+  { key:'export', label:'Экспорт в нужном разрешении' },
+];
+const MUSIC_LINKS = [
+  { name: 'YouTube Audio Library', url: 'https://www.youtube.com/audiolibrary' },
+  { name: 'Pixabay Music (бесплатно)', url: 'https://pixabay.com/music/' },
+];
+const SFX_LINKS = [
+  { name: 'Pixabay Sound Effects', url: 'https://pixabay.com/sound-effects/' },
+  { name: 'Mixkit Free SFX', url: 'https://mixkit.co/free-sound-effects/' },
+];
+const KBD_SHORTCUTS = [
+  { app: 'CapCut', keys: [['Ctrl+B','Разрезать'], ['Ctrl+Z','Отменить'], ['Space','Пуск/пауза']] },
+  { app: 'DaVinci Resolve', keys: [['Ctrl+B','Разрезать'], ['Ctrl+Z','Отменить'], ['J/K/L','Перемотка/пауза/вперёд']] },
+  { app: 'Premiere Pro', keys: [['C','Инструмент разрезки'], ['Ctrl+K','Разрезать на плейхеде'], ['Space','Пуск/пауза']] },
+];
+const CTA_PHRASES = ['Подпишись, чтобы не пропустить новые ролики!','Ставь лайк, если понравилось!','Пиши в комментариях, что построить дальше!','Жду тебя в следующем видео!'];
+const DEFAULT_COMMENT_REPLIES = ['Спасибо за подписку! 🔥','Спасибо за тёплые слова!','Хороший вопрос, отвечу в одном из следующих роликов!','Спасибо, что смотришь до конца!'];
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1600);
+}
+
+async function loadAll(){
+  try{
+    const [n, c, p, v, ytc, ids, gg, sch, gl, th, prc, edc, insp, colb, mil, strk, io, cr] = await Promise.all([
+      safeGet('notes'), safeGet('cards'), safeGet('tasks'), safeGet('videos'), safeGet('ytChannel'), safeGet('ytIdeas'), safeGet('giga'), safeGet('ytSchedule'), safeGet('ytGoal'),
+      safeGet('ytThumbHistory'), safeGet('ytPrerecordChecklist'), safeGet('ytEditChecklist'), safeGet('ytInspiration'), safeGet('ytCollabs'), safeGet('ytMilestones'), safeGet('ytStreakLog'), safeGet('ytIntroOutro'), safeGet('ytCommentReplies')
+    ]);
+    state.notes = n || [];
+    state.cards = c || [];
+    state.tasks = p || [];
+    state.videos = v || [];
+    state.channel = ytc || null;
+    state.ideas = ids || [];
+    state.giga = gg || null;
+    state.schedule = sch || { days: [false,false,false,false,false,false,false] };
+    state.goal = gl || null;
+    state.thumbHistory = th || [];
+    state.prerecordChecklist = prc || {};
+    state.editChecklist = edc || {};
+    state.inspiration = insp || [];
+    state.collabs = colb || [];
+    state.milestones = mil || [];
+    state.streakLog = strk || [];
+    state.introOutro = io || { intro: '', outro: '' };
+    state.commentReplies = cr || DEFAULT_COMMENT_REPLIES.map(t => ({ id: uid(), text: t }));
+  }catch(e){
+    console.error('Load error', e);
+    showToast('Не удалось загрузить данные');
+  }
+  renderAll();
+  if(state.channel && state.channel.apiKey){ refreshChannel(false); }
+}
+async function safeGet(key){
+  try{
+    const raw = localStorage.getItem('konspekt:' + key);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+async function save(key, value){
+  try{
+    localStorage.setItem('konspekt:' + key, JSON.stringify(value));
+  }catch(e){ console.error(e); showToast('Ошибка сохранения (возможно, кончилось место)'); }
+}
+async function removeKey(key){
+  try{ localStorage.removeItem('konspekt:' + key); }catch(e){}
+}
+
+function renderAll(){
+  renderNotes(); renderCards(); renderTasks(); renderVideos(); renderChannelBlock(); renderIdeas(); renderAiChat(); renderTools(); renderThumbs(); renderEdit();
+  const d = new Date();
+  document.getElementById('headerDate').textContent = d.toLocaleDateString('ru-RU', {day:'numeric', month:'long'});
+}
+
+/* ---------- NOTES ---------- */
+function renderNotes(){
+  const el = document.getElementById('view-notes');
+  if(state.notes.length === 0){
+    el.innerHTML = emptyState('Пока нет заметок', 'Нажмите «+», чтобы записать первую мысль или конспект.');
+    return;
+  }
+  const sorted = [...state.notes].sort((a,b)=>b.updated - a.updated);
+  el.innerHTML = sorted.map(n => `
+    <div class="card">
+      <div class="card-row">
+        <div style="flex:1">
+          ${n.title ? `<div class="note-title">${escapeHtml(n.title)}</div>` : ''}
+          <div class="note-text">${escapeHtml(n.text)}</div>
+          <div class="note-meta">${new Date(n.updated).toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}</div>
+        </div>
+        <button class="icon-btn" onclick="deleteNote('${n.id}')">${trashIcon()}</button>
+      </div>
+    </div>
+  `).join('');
+}
+function deleteNote(id){
+  state.notes = state.notes.filter(n=>n.id!==id);
+  save('notes', state.notes);
+  renderNotes();
+}
+
+/* ---------- FLASHCARDS ---------- */
+function renderCards(){
+  const el = document.getElementById('view-cards');
+  if(state.reviewQueue.length){ renderReview(); return; }
+  const dueCount = state.cards.filter(c=>!c.nextReview || c.nextReview <= Date.now()).length;
+  let html = `
+    <div class="deck-count">${state.cards.length} карт${plural(state.cards.length)} · к повторению: ${dueCount}</div>
+    <button class="study-btn" ${state.cards.length? '' : 'disabled'} onclick="startReview()">Учить</button>
+  `;
+  if(state.cards.length === 0){
+    html += emptyState('Нет карточек', 'Добавьте карточку — вопрос спереди, ответ сзади.');
+  } else {
+    const sorted = [...state.cards].sort((a,b)=>b.created-a.created);
+    html += sorted.map(c => `
+      <div class="card">
+        <div class="card-row">
+          <div style="flex:1">
+            <div class="flash-front">${escapeHtml(c.front)}</div>
+            <div class="flash-back">${escapeHtml(c.back)}</div>
+          </div>
+          <button class="icon-btn" onclick="deleteCard('${c.id}')">${trashIcon()}</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  el.innerHTML = html;
+}
+function deleteCard(id){
+  state.cards = state.cards.filter(c=>c.id!==id);
+  save('cards', state.cards);
+  renderCards();
+}
+function startReview(){
+  const due = state.cards.filter(c=>!c.nextReview || c.nextReview <= Date.now());
+  state.reviewQueue = (due.length ? due : state.cards).map(c=>c.id);
+  state.reviewIndex = 0;
+  state.reviewFlipped = false;
+  renderReview();
+}
+function renderReview(){
+  const el = document.getElementById('view-cards');
+  if(state.reviewIndex >= state.reviewQueue.length){
+    el.innerHTML = `<div class="review-done"><h3>Готово 🎉</h3><p style="color:var(--ink-faint);font-size:14px;">Вы повторили ${state.reviewQueue.length} карт${plural(state.reviewQueue.length)}.</p></div>`;
+    state.reviewQueue = [];
+    setTimeout(renderCards, 1400);
+    return;
+  }
+  const card = state.cards.find(c=>c.id===state.reviewQueue[state.reviewIndex]);
+  if(!card){ state.reviewIndex++; return renderReview(); }
+  el.innerHTML = `
+    <div class="review-wrap">
+      <div class="review-progress">${state.reviewIndex+1} из ${state.reviewQueue.length}</div>
+      <div class="flip-card ${state.reviewFlipped?'flipped':''}" id="flipCard" onclick="toggleFlip()">
+        <div class="flip-inner">
+          <div class="flip-face front">${escapeHtml(card.front)}</div>
+          <div class="flip-face back">${escapeHtml(card.back)}</div>
+        </div>
+      </div>
+      <div class="flip-hint">${state.reviewFlipped ? 'Оцените себя' : 'Нажмите, чтобы увидеть ответ'}</div>
+      ${state.reviewFlipped ? `
+      <div class="review-actions">
+        <button class="btn-again" onclick="answerCard('${card.id}', false)">Повторить ещё</button>
+        <button class="btn-know" onclick="answerCard('${card.id}', true)">Знаю</button>
+      </div>` : ''}
+    </div>
+  `;
+}
+function toggleFlip(){ state.reviewFlipped = !state.reviewFlipped; renderReview(); }
+function answerCard(id, knew){
+  const card = state.cards.find(c=>c.id===id);
+  if(card){
+    const days = knew ? 3 : 0;
+    card.nextReview = Date.now() + days*86400000;
+    save('cards', state.cards);
+  }
+  state.reviewIndex++;
+  state.reviewFlipped = false;
+  renderReview();
+}
+
+/* ---------- PLANNER ---------- */
+function renderTasks(){
+  const el = document.getElementById('view-plan');
+  if(state.tasks.length === 0){
+    el.innerHTML = emptyState('Список дел пуст', 'Добавьте задачу — с дедлайном или без.');
+    return;
+  }
+  const sorted = [...state.tasks].sort((a,b)=>{
+    if(a.done !== b.done) return a.done ? 1 : -1;
+    if(a.due && b.due) return a.due - b.due;
+    if(a.due) return -1;
+    if(b.due) return 1;
+    return b.created - a.created;
+  });
+  const today = new Date(); today.setHours(0,0,0,0);
+  el.innerHTML = sorted.map(t => {
+    const overdue = t.due && !t.done && t.due < today.getTime();
+    return `
+    <div class="card">
+      <div class="task-row">
+        <div class="check ${t.done?'done':''}" onclick="toggleTask('${t.id}')"></div>
+        <div style="flex:1">
+          <div class="task-text ${t.done?'done':''}">${escapeHtml(t.text)}</div>
+          ${t.due ? `<div class="task-date ${overdue?'overdue':''}">${new Date(t.due).toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}</div>` : ''}
+        </div>
+        <button class="icon-btn" onclick="deleteTask('${t.id}')">${trashIcon()}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleTask(id){
+  const t = state.tasks.find(x=>x.id===id);
+  if(t){ t.done = !t.done; save('tasks', state.tasks); renderTasks(); }
+}
+function deleteTask(id){
+  state.tasks = state.tasks.filter(t=>t.id!==id);
+  save('tasks', state.tasks);
+  renderTasks();
+}
+
+/* ---------- YOUTUBE / MINECRAFT ---------- */
+function videoProgress(v){
+  const done = CHECKLIST_STEPS.filter(s => v.checklist[s.key]).length;
+  return { done, total: CHECKLIST_STEPS.length };
+}
+function renderVideos(){
+  const el = document.getElementById('yt-drafts');
+  if(state.videos.length === 0){
+    el.innerHTML = emptyState('Пока нет роликов', 'Добавьте идею ролика по Minecraft и ведите его от сценария до публикации.');
+    return;
+  }
+  const sorted = [...state.videos].sort((a,b)=>{
+    const pa = videoProgress(a), pb = videoProgress(b);
+    const doneA = pa.done === pa.total, doneB = pb.done === pb.total;
+    if(doneA !== doneB) return doneA ? 1 : -1;
+    return b.created - a.created;
+  });
+  el.innerHTML = sorted.map(v => {
+    const { done, total } = videoProgress(v);
+    const finished = done === total;
+    const expanded = state.expandedVideo === v.id;
+    const crosspost = v.crosspost || {};
+    return `
+    <div class="card yt-card" onclick="toggleExpandVideo('${v.id}')">
+      <div class="yt-head">
+        <div class="yt-title">${escapeHtml(v.title)}${v.series ? `<span style="display:block;font-size:11px;color:var(--gold);font-weight:600;margin-top:2px;">${escapeHtml(v.series)}</span>` : ''}</div>
+        ${finished ? '<span class="yt-tag">Опубликовано</span>' : ''}
+        <button class="icon-btn" onclick="event.stopPropagation(); deleteVideo('${v.id}')">${trashIcon()}</button>
+      </div>
+      <div class="yt-progress-row">
+        <div class="yt-bar"><div class="yt-bar-fill ${finished?'done':''}" style="width:${(done/total*100).toFixed(0)}%"></div></div>
+        <div class="yt-progress-label">${done}/${total}</div>
+      </div>
+      ${expanded ? `
+      <div class="yt-checklist" onclick="event.stopPropagation()">
+        ${CHECKLIST_STEPS.map(s => `
+          <div class="yt-check-item ${v.checklist[s.key]?'checked':''}" onclick="toggleVideoStep('${v.id}','${s.key}')">
+            <div class="check-sq ${v.checklist[s.key]?'done':''}"></div>
+            <span>${s.label}</span>
+          </div>
+        `).join('')}
+        <div class="thumb-mini-label" style="margin-top:12px;">Куда уже выложено</div>
+        ${CROSSPOST_PLATFORMS.map(p => `
+          <div class="yt-check-item ${crosspost[p.key]?'checked':''}" onclick="toggleVideoCrosspost('${v.id}','${p.key}')">
+            <div class="check-sq ${crosspost[p.key]?'done':''}"></div>
+            <span>${p.label}</span>
+          </div>
+        `).join('')}
+        <div class="thumb-mini-label" style="margin-top:12px;">Заметки / сценарий</div>
+        <textarea class="desc-output" style="min-height:70px;" placeholder="Черновик сценария, ключевые моменты..." onblur="saveVideoNotes('${v.id}', this.value)">${escapeHtml(v.notes || '')}</textarea>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+function toggleVideoCrosspost(id, key){
+  const v = state.videos.find(x=>x.id===id);
+  if(v){ v.crosspost = v.crosspost || {}; v.crosspost[key] = !v.crosspost[key]; save('videos', state.videos); renderVideos(); }
+}
+function saveVideoNotes(id, text){
+  const v = state.videos.find(x=>x.id===id);
+  if(v && v.notes !== text){ v.notes = text; save('videos', state.videos); }
+}
+function toggleExpandVideo(id){
+  state.expandedVideo = state.expandedVideo === id ? null : id;
+  renderVideos();
+}
+function toggleVideoStep(id, key){
+  const v = state.videos.find(x=>x.id===id);
+  if(v){ v.checklist[key] = !v.checklist[key]; save('videos', state.videos); renderVideos(); }
+}
+function deleteVideo(id){
+  state.videos = state.videos.filter(v=>v.id!==id);
+  if(state.expandedVideo === id) state.expandedVideo = null;
+  save('videos', state.videos);
+  renderVideos();
+}
+function submitVideo(){
+  const title = document.getElementById('f-video').value.trim();
+  const series = document.getElementById('f-video-series') ? document.getElementById('f-video-series').value.trim() : '';
+  if(!title){ showToast('Введите название или идею ролика'); return; }
+  const checklist = {};
+  CHECKLIST_STEPS.forEach(s => checklist[s.key] = false);
+  let seriesLabel = '';
+  if(series){
+    const countInSeries = state.videos.filter(v => v.series && v.series.startsWith(series + ' #')).length;
+    seriesLabel = `${series} #${countInSeries + 1}`;
+  }
+  state.videos.push({ id: uid(), title, series: seriesLabel, checklist, crosspost: {}, notes: '', created: Date.now() });
+  save('videos', state.videos);
+  renderVideos(); closeModal();
+}
+
+/* ---------- CHANNEL (YouTube Data API, public data only) ---------- */
+function formatNum(n){
+  if(n === null || n === undefined) return '—';
+  return Number(n).toLocaleString('ru-RU');
+}
+async function resolveChannel(apiKey, rawInput){
+  const input = rawInput.trim();
+  let url;
+  if(/^UC[\w-]{22}$/.test(input)){
+    url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&id=${encodeURIComponent(input)}&key=${apiKey}`;
+  } else {
+    const handle = input.replace(/^@/, '');
+    url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&forHandle=${encodeURIComponent(handle)}&key=${apiKey}`;
+  }
+  let data = await (await fetch(url)).json();
+  if(data.error) throw new Error(data.error.message || 'Ошибка API');
+  if(!data.items || !data.items.length){
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&maxResults=1&q=${encodeURIComponent(input)}&key=${apiKey}`;
+    const sData = await (await fetch(searchUrl)).json();
+    if(sData.error) throw new Error(sData.error.message || 'Ошибка API');
+    const chId = sData.items && sData.items[0] && sData.items[0].id && sData.items[0].id.channelId;
+    if(!chId) throw new Error('Канал не найден');
+    const url2 = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&id=${chId}&key=${apiKey}`;
+    data = await (await fetch(url2)).json();
+    if(data.error) throw new Error(data.error.message || 'Ошибка API');
+  }
+  if(!data.items || !data.items.length) throw new Error('Канал не найден');
+  return data.items[0];
+}
+async function fetchUploads(apiKey, uploadsPlaylistId, max){
+  const plUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=${max}&playlistId=${uploadsPlaylistId}&key=${apiKey}`;
+  const plData = await (await fetch(plUrl)).json();
+  if(plData.error) throw new Error(plData.error.message || 'Ошибка API');
+  const items = plData.items || [];
+  const ids = items.map(i => i.snippet.resourceId.videoId).filter(Boolean);
+  let statMap = {};
+  if(ids.length){
+    const vUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${ids.join(',')}&key=${apiKey}`;
+    const vData = await (await fetch(vUrl)).json();
+    (vData.items || []).forEach(v => statMap[v.id] = v.statistics);
+  }
+  return items.map(i => {
+    const vid = i.snippet.resourceId.videoId;
+    const thumbs = i.snippet.thumbnails || {};
+    return {
+      id: vid,
+      title: i.snippet.title,
+      thumbnail: (thumbs.medium || thumbs.default || {}).url || '',
+      publishedAt: i.snippet.publishedAt,
+      views: statMap[vid] ? statMap[vid].viewCount : null
+    };
+  });
+}
+async function refreshChannel(notify){
+  if(!state.channel || !state.channel.apiKey) return;
+  state.channelLoading = true;
+  renderChannelBlock();
+  try{
+    const ch = await resolveChannel(state.channel.apiKey, state.channel.channelInput);
+    const uploadsPlaylist = ch.contentDetails && ch.contentDetails.relatedPlaylists && ch.contentDetails.relatedPlaylists.uploads;
+    const uploads = uploadsPlaylist ? await fetchUploads(state.channel.apiKey, uploadsPlaylist, 6) : [];
+    const thumbs = ch.snippet.thumbnails || {};
+    state.channel.data = {
+      title: ch.snippet.title,
+      avatar: (thumbs.medium || thumbs.default || {}).url || '',
+      subs: ch.statistics.hiddenSubscriberCount ? null : ch.statistics.subscriberCount,
+      views: ch.statistics.viewCount,
+      videoCount: ch.statistics.videoCount,
+      uploads,
+      fetchedAt: Date.now()
+    };
+    await save('ytChannel', state.channel);
+    if(notify) showToast('Канал обновлён');
+  }catch(e){
+    console.error(e);
+    showToast('Не удалось обновить канал: ' + (e.message || 'ошибка'));
+  }
+  state.channelLoading = false;
+  renderChannelBlock();
+}
+function renderChannelBlock(){
+  const el = document.getElementById('yt-channel');
+  if(!el) return;
+  let channelHtml;
+  if(!state.channel){
+    channelHtml = `
+      <div class="connect-card">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg>
+        <p>Привяжите свой канал, чтобы видеть подписчиков, просмотры и последние ролики прямо здесь.</p>
+        <button class="connect-btn" onclick="openChannelModal()">Привязать канал</button>
+      </div>`;
+  } else if(state.channelLoading && !state.channel.data){
+    channelHtml = `<div class="connect-card"><p style="margin:0;">Загружаем данные канала…</p></div>`;
+  } else if(!state.channel.data){
+    channelHtml = `<div class="connect-card"><p style="margin:0;">Не получилось загрузить канал.</p><button class="connect-btn" style="margin-top:10px" onclick="refreshChannel(true)">Повторить</button></div>`;
+  } else {
+    const d = state.channel.data;
+    const updated = new Date(d.fetchedAt).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+    const maxViews = Math.max(1, ...d.uploads.map(u => Number(u.views)||0));
+    channelHtml = `
+      <div class="channel-card">
+        <div class="channel-head">
+          <img class="channel-avatar" src="${d.avatar}" alt="">
+          <div>
+            <div class="channel-name">${escapeHtml(d.title)}</div>
+            <div class="channel-sub">${d.subs===null ? 'подписчики скрыты' : formatNum(d.subs) + ' подписчиков'}</div>
+          </div>
+        </div>
+        <div class="channel-stats">
+          <div class="stat-box"><div class="stat-num">${formatNum(d.subs)}</div><div class="stat-label">подписчиков</div></div>
+          <div class="stat-box"><div class="stat-num">${formatNum(d.views)}</div><div class="stat-label">просмотров</div></div>
+          <div class="stat-box"><div class="stat-num">${formatNum(d.videoCount)}</div><div class="stat-label">видео</div></div>
+        </div>
+        <div class="channel-foot">
+          <span>Обновлено в ${updated}${state.channelLoading ? ' · обновляется…' : ''}</span>
+          <span>
+            <button onclick="refreshChannel(true)">Обновить</button> ·
+            <button onclick="disconnectChannel()">Отвязать</button>
+          </span>
+        </div>
+        ${d.uploads.length ? `
+        <div class="chart-wrap">
+          <div class="chart-bars">
+            ${d.uploads.slice().reverse().map(u => `<div class="chart-bar" style="height:${Math.max(4,(Number(u.views)||0)/maxViews*90)}px" title="${formatNum(u.views)}"></div>`).join('')}
+          </div>
+          <div class="chart-labels">
+            ${d.uploads.slice().reverse().map(u => `<span>${new Date(u.publishedAt).toLocaleDateString('ru-RU',{day:'numeric',month:'numeric'})}</span>`).join('')}
+          </div>
+        </div>` : ''}
+        <div class="upload-list">
+          ${d.uploads.map(u => `
+            <div class="upload-item">
+              <img class="upload-thumb" src="${u.thumbnail}" alt="">
+              <div>
+                <div class="upload-title">${escapeHtml(u.title)}</div>
+                <div class="upload-meta">${new Date(u.publishedAt).toLocaleDateString('ru-RU',{day:'numeric',month:'short'})} · ${formatNum(u.views)} просмотров</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }
+
+  const days = (state.schedule && state.schedule.days) || [false,false,false,false,false,false,false];
+  const scheduleHtml = `
+    <h3 class="section-heading">Расписание публикаций</h3>
+    <div class="card">
+      <div style="font-size:12.5px;color:var(--ink-faint);">Отметьте дни, когда планируете выкладывать ролики — как личное напоминание.</div>
+      <div class="weekday-row">
+        ${WEEKDAYS.map((w,i) => `<div class="weekday-chip ${days[i]?'on':''}" onclick="toggleScheduleDay(${i})">${w}</div>`).join('')}
+      </div>
+    </div>`;
+
+  const subs = state.channel && state.channel.data ? state.channel.data.subs : null;
+  const goalVal = state.goal ? state.goal.target : null;
+  let goalProgressHtml = '';
+  if(goalVal && subs !== null && subs !== undefined){
+    const pct = Math.min(100, (subs/goalVal*100));
+    goalProgressHtml = `
+      <div class="goal-bar-wrap">
+        <div class="goal-bar"><div class="goal-bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
+        <div class="goal-caption">${formatNum(subs)} из ${formatNum(goalVal)} подписчиков (${pct.toFixed(0)}%)</div>
+      </div>`;
+  } else if(goalVal){
+    goalProgressHtml = `<div class="goal-caption" style="margin-top:10px;">Цель сохранена: ${formatNum(goalVal)} подписчиков. Привяжите канал, чтобы видеть прогресс.</div>`;
+  }
+  const goalHtml = `
+    <h3 class="section-heading">Цель по подписчикам</h3>
+    <div class="card">
+      <div class="goal-row">
+        <input id="f-goal" type="number" placeholder="Например: 10000" value="${goalVal || ''}">
+        <button onclick="saveGoal()">Сохранить</button>
+      </div>
+      ${goalProgressHtml}
+    </div>`;
+
+  const streak = calcStreak();
+  const streakHtml = `
+    <h3 class="section-heading">Стрик публикаций</h3>
+    <div class="card">
+      <div class="streak-box">
+        <div class="streak-num">🔥 ${streak}</div>
+        <div class="streak-label">недель подряд с новым роликом</div>
+      </div>
+      <button class="connect-btn" style="width:100%;" onclick="markPublishedToday()">Отметить: выложил ролик сегодня</button>
+    </div>`;
+
+  const milestoneHtml = `
+    <h3 class="section-heading">Вехи по подписчикам</h3>
+    <div class="card">
+      <div class="milestone-row">
+        <input id="f-milestone" type="number" placeholder="Например: 1000">
+        <button onclick="addMilestone()" style="border:none;background:var(--ink);color:var(--paper);border-radius:8px;padding:0 16px;font-size:13px;">+</button>
+      </div>
+      ${state.milestones.length === 0 ? '<div style="font-size:12.5px;color:var(--ink-faint);">Пока не добавлено ни одной вехи</div>' :
+        [...state.milestones].sort((a,b)=>a.target-b.target).map(m => `
+        <div class="milestone-item">
+          <span>${formatNum(m.target)} подписчиков</span>
+          <span style="color:${m.achievedDate ? 'var(--green)' : 'var(--ink-faint)'};">${m.achievedDate ? '✅ ' + new Date(m.achievedDate).toLocaleDateString('ru-RU',{day:'numeric',month:'short'}) : 'в процессе'}</span>
+        </div>
+      `).join('')}
+    </div>`;
+
+  const qrHtml = `
+    <h3 class="section-heading">QR-код на канал</h3>
+    <div class="card" style="text-align:center;">
+      <div id="qr-container" style="display:flex;justify-content:center;margin-bottom:10px;"></div>
+      <button class="connect-btn" onclick="generateChannelQR()">Сгенерировать QR</button>
+    </div>`;
+
+  el.innerHTML = channelHtml + scheduleHtml + streakHtml + goalHtml + milestoneHtml + qrHtml;
+  checkMilestones();
+}
+function calcStreak(){
+  if(!state.streakLog.length) return 0;
+  const weeks = new Set(state.streakLog.map(d => {
+    const dt = new Date(d);
+    const onejan = new Date(dt.getFullYear(),0,1);
+    const week = Math.ceil((((dt - onejan) / 86400000) + onejan.getDay()+1)/7);
+    return dt.getFullYear() + '-' + week;
+  }));
+  let streak = 0;
+  const now = new Date();
+  for(let i=0;i<104;i++){
+    const d = new Date(now); d.setDate(d.getDate() - i*7);
+    const onejan = new Date(d.getFullYear(),0,1);
+    const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay()+1)/7);
+    const key = d.getFullYear() + '-' + week;
+    if(weeks.has(key)) streak++;
+    else if(i>0) break;
+  }
+  return streak;
+}
+function markPublishedToday(){
+  const today = new Date().toISOString().slice(0,10);
+  if(!state.streakLog.includes(today)){
+    state.streakLog.push(today);
+    if(state.streakLog.length > 400) state.streakLog = state.streakLog.slice(-400);
+    save('ytStreakLog', state.streakLog);
+  }
+  renderChannelBlock();
+  showToast('Отмечено!');
+}
+function addMilestone(){
+  const val = parseInt(document.getElementById('f-milestone').value, 10);
+  if(!val || val <= 0){ showToast('Введите число'); return; }
+  state.milestones.push({ id: uid(), target: val, achievedDate: null });
+  save('ytMilestones', state.milestones);
+  renderChannelBlock();
+}
+function checkMilestones(){
+  const subs = state.channel && state.channel.data ? state.channel.data.subs : null;
+  if(subs === null || subs === undefined) return;
+  let changed = false;
+  state.milestones.forEach(m => {
+    if(!m.achievedDate && subs >= m.target){ m.achievedDate = Date.now(); changed = true; }
+  });
+  if(changed) save('ytMilestones', state.milestones);
+}
+function generateChannelQR(){
+  let url = 'https://youtube.com';
+  if(state.channel && state.channel.channelInput){
+    const handle = state.channel.channelInput.replace(/^@/,'');
+    url = 'https://youtube.com/@' + handle;
+  } else if(state.channel && state.channel.data && state.channel.data.title){
+    url = 'https://youtube.com/results?search_query=' + encodeURIComponent(state.channel.data.title);
+  } else {
+    showToast('Сначала привяжите канал');
+    return;
+  }
+  const container = document.getElementById('qr-container');
+  container.innerHTML = '';
+  try{
+    let qr = null;
+    for(let t=1; t<=15; t++){
+      try{ qr = qrcode(t, 'M'); qr.addData(url); qr.make(); break; }
+      catch(e){ qr = null; }
+    }
+    if(!qr) throw new Error('too long');
+    container.innerHTML = qr.createSvgTag(5, 4);
+  }catch(e){
+    console.error(e);
+    showToast('Не удалось создать QR');
+  }
+}
+function toggleScheduleDay(i){
+  const days = (state.schedule && state.schedule.days) || [false,false,false,false,false,false,false];
+  days[i] = !days[i];
+  state.schedule = { days };
+  save('ytSchedule', state.schedule);
+  renderChannelBlock();
+}
+function saveGoal(){
+  const val = parseInt(document.getElementById('f-goal').value, 10);
+  if(!val || val <= 0){ showToast('Введите число'); return; }
+  state.goal = { target: val };
+  save('ytGoal', state.goal);
+  renderChannelBlock();
+  showToast('Цель сохранена');
+}
+function openChannelModal(){
+  sheet.innerHTML = `
+    <h3>Привязать канал</h3>
+    <p style="font-size:12.5px; color:var(--ink-soft); line-height:1.6; margin:-4px 0 14px;">
+      Полноценный вход через Google внутри мини-приложения недоступен, но можно подключить публичную статистику канала через бесплатный API-ключ YouTube Data API v3.
+      Получить его можно в <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Google Cloud Console</a>: создайте проект, включите «YouTube Data API v3» и создайте API-ключ.
+      Ключ сохраняется только в этом приложении на вашем устройстве.
+    </p>
+    <div class="field"><label>API-ключ</label><input id="f-apikey" type="text" value="${state.channel ? escapeHtml(state.channel.apiKey) : ''}"></div>
+    <div class="field"><label>Channel ID или @handle канала</label><input id="f-channel" type="text" placeholder="@MyMinecraftChannel" value="${state.channel ? escapeHtml(state.channel.channelInput) : ''}"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+      <button class="btn-save" onclick="submitChannelForm()">Привязать</button>
+    </div>`;
+  overlay.classList.add('open');
+}
+async function submitChannelForm(){
+  const apiKey = document.getElementById('f-apikey').value.trim();
+  const channelInput = document.getElementById('f-channel').value.trim();
+  if(!apiKey || !channelInput){ showToast('Заполните оба поля'); return; }
+  state.channel = { apiKey, channelInput, data: state.channel && state.channel.data };
+  await save('ytChannel', state.channel);
+  closeModal();
+  refreshChannel(true);
+}
+async function disconnectChannel(){
+  state.channel = null;
+  state.channelLoading = false;
+  try{ await removeKey('ytChannel'); }catch(e){}
+  renderChannelBlock();
+  showToast('Канал отвязан');
+}
+
+/* ---------- IDEA BANK ---------- */
+function renderIdeas(){
+  const el = document.getElementById('yt-ideas');
+  if(!el) return;
+  const rouletteHtml = `
+    <div class="roulette-box">
+      <div style="font-size:12.5px;color:var(--ink-faint);">Нет идей? Крутите рулетку</div>
+      <div class="roulette-result">${state.rouletteResult ? escapeHtml(state.rouletteResult) : '—'}</div>
+      <div class="roulette-actions">
+        <button class="btn-roll" onclick="rollIdea()">🎲 Крутить</button>
+        ${state.rouletteResult ? `<button class="btn-save-idea" onclick="saveRolledIdea()">Сохранить идею</button>` : ''}
+      </div>
+    </div>`;
+  const listHtml = state.ideas.length === 0
+    ? emptyState('Банк идей пуст', 'Быстро записывайте мысли для роликов сюда — «+» внизу справа, или крутите рулетку выше.')
+    : [...state.ideas].sort((a,b)=>b.created-a.created).map(i => `
+      <div class="card">
+        <div class="idea-row">
+          <div class="idea-text">${escapeHtml(i.text)} ${i.type==='shorts' ? '<span class="yt-tag" style="background:#E6E1F5;color:#6B4FBB;">Shorts</span>' : ''}</div>
+          <button class="idea-promote" onclick="promoteIdea('${i.id}')">В работу →</button>
+          <button class="icon-btn" onclick="deleteIdea('${i.id}')">${trashIcon()}</button>
+        </div>
+      </div>
+    `).join('');
+
+  const inspHtml = `
+    <h3 class="section-heading">Каналы-вдохновение</h3>
+    <div class="card">
+      ${state.inspiration.length === 0 ? '<div style="font-size:12.5px;color:var(--ink-faint);">Пока пусто</div>' :
+        state.inspiration.map(i => `
+        <div class="idea-row" style="padding:8px 0;border-top:1px solid var(--line);">
+          <div style="flex:1;"><div style="font-weight:600;font-size:13.5px;">${escapeHtml(i.name)}</div>${i.note ? `<div style="font-size:12px;color:var(--ink-faint);margin-top:2px;">${escapeHtml(i.note)}</div>` : ''}</div>
+          <button class="icon-btn" onclick="deleteInspiration('${i.id}')">${trashIcon()}</button>
+        </div>
+      `).join('')}
+      <div class="gen-row" style="margin-top:10px;">
+        <input id="f-insp-name" type="text" placeholder="Название канала/ролика">
+      </div>
+      <div class="gen-row">
+        <input id="f-insp-note" type="text" placeholder="Что понравилось">
+        <button onclick="addInspiration()">+</button>
+      </div>
+    </div>
+
+    <h3 class="section-heading">Коллаборации</h3>
+    <div class="card">
+      ${state.collabs.length === 0 ? '<div style="font-size:12.5px;color:var(--ink-faint);">Пока нет запланированных</div>' :
+        state.collabs.map(c => `
+        <div class="idea-row" style="padding:8px 0;border-top:1px solid var(--line);">
+          <div style="flex:1;"><div style="font-weight:600;font-size:13.5px;">${escapeHtml(c.who)}</div><div style="font-size:12px;color:var(--ink-faint);margin-top:2px;">${escapeHtml(c.status)}</div></div>
+          <button class="icon-btn" onclick="deleteCollab('${c.id}')">${trashIcon()}</button>
+        </div>
+      `).join('')}
+      <div class="gen-row" style="margin-top:10px;">
+        <input id="f-collab-who" type="text" placeholder="С кем коллаборация">
+      </div>
+      <div class="gen-row">
+        <input id="f-collab-status" type="text" placeholder="Статус, напр. договорились на субботу">
+        <button onclick="addCollab()">+</button>
+      </div>
+    </div>`;
+
+  el.innerHTML = rouletteHtml + listHtml + inspHtml;
+}
+function addInspiration(){
+  const name = document.getElementById('f-insp-name').value.trim();
+  const note = document.getElementById('f-insp-note').value.trim();
+  if(!name){ showToast('Введите название'); return; }
+  state.inspiration.push({ id: uid(), name, note });
+  save('ytInspiration', state.inspiration);
+  renderIdeas();
+}
+function deleteInspiration(id){
+  state.inspiration = state.inspiration.filter(i=>i.id!==id);
+  save('ytInspiration', state.inspiration);
+  renderIdeas();
+}
+function addCollab(){
+  const who = document.getElementById('f-collab-who').value.trim();
+  const status = document.getElementById('f-collab-status').value.trim() || 'В процессе обсуждения';
+  if(!who){ showToast('Введите с кем коллаборация'); return; }
+  state.collabs.push({ id: uid(), who, status });
+  save('ytCollabs', state.collabs);
+  renderIdeas();
+}
+function deleteCollab(id){
+  state.collabs = state.collabs.filter(c=>c.id!==id);
+  save('ytCollabs', state.collabs);
+  renderIdeas();
+}
+function rollIdea(){
+  const mob = ROULETTE_MOBS[Math.floor(Math.random()*ROULETTE_MOBS.length)];
+  const format = ROULETTE_FORMATS[Math.floor(Math.random()*ROULETTE_FORMATS.length)];
+  state.rouletteResult = `«${format[0].toUpperCase()+format.slice(1)}» с участием: ${mob}`;
+  renderIdeas();
+}
+function saveRolledIdea(){
+  if(!state.rouletteResult) return;
+  state.ideas.push({ id: uid(), text: state.rouletteResult, created: Date.now() });
+  save('ytIdeas', state.ideas);
+  state.rouletteResult = null;
+  renderIdeas();
+  showToast('Идея сохранена');
+}
+function deleteIdea(id){
+  state.ideas = state.ideas.filter(i=>i.id!==id);
+  save('ytIdeas', state.ideas);
+  renderIdeas();
+}
+function promoteIdea(id){
+  const idea = state.ideas.find(i=>i.id===id);
+  if(!idea) return;
+  const checklist = {};
+  CHECKLIST_STEPS.forEach(s => checklist[s.key] = false);
+  state.videos.push({ id: uid(), title: idea.text, checklist, created: Date.now() });
+  state.ideas = state.ideas.filter(i=>i.id!==id);
+  save('videos', state.videos);
+  save('ytIdeas', state.ideas);
+  renderVideos(); renderIdeas();
+  showToast('Идея перенесена в «Ролики»');
+}
+function setIdeaType(type){
+  state.pendingIdeaType = type;
+  document.querySelectorAll('#idea-type-row .weekday-chip').forEach(el => el.classList.toggle('on', el.dataset.type === type));
+}
+function submitIdea(){
+  const text = document.getElementById('f-idea').value.trim();
+  if(!text){ showToast('Введите идею'); return; }
+  state.ideas.push({ id: uid(), text, type: state.pendingIdeaType || 'video', created: Date.now() });
+  save('ytIdeas', state.ideas);
+  renderIdeas(); closeModal();
+}
+
+/* ---------- TOOLS: title generator, description generator, tag bank, + more ---------- */
+function renderTools(){
+  const el = document.getElementById('yt-tools');
+  if(!el) return;
+  const io = state.introOutro || { intro:'', outro:'' };
+  el.innerHTML = `
+    <h3 class="section-heading">Генератор заголовков</h3>
+    <div class="card">
+      <div class="gen-row">
+        <input id="f-title-word" type="text" placeholder="Тема ролика, например: ферма мобов">
+        <button onclick="generateTitles()">Создать</button>
+      </div>
+      <div id="title-results"></div>
+    </div>
+
+    <h3 class="section-heading">Счётчик символов заголовка</h3>
+    <div class="card">
+      <input id="f-title-check" type="text" placeholder="Вставьте заголовок ролика" oninput="checkTitleLen()" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px;background:var(--card);color:var(--ink);">
+      <div id="title-len-result" class="goal-caption" style="margin-top:8px;">YouTube показывает целиком примерно до 60–70 символов.</div>
+    </div>
+
+    <h3 class="section-heading">Шаблон описания под видео</h3>
+    <div class="card">
+      <div class="field"><label>Название ролика</label><input id="f-desc-title" type="text"></div>
+      <div class="field"><label>О чём ролик (1–2 предложения)</label><textarea id="f-desc-summary" oninput="checkDescLen()"></textarea></div>
+      <button onclick="generateDescription()" style="border:none;background:var(--ink);color:var(--paper);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;">Сгенерировать</button>
+      <textarea class="desc-output" id="desc-output" readonly placeholder="Здесь появится готовое описание…"></textarea>
+      <div id="desc-len-result" class="goal-caption" style="margin-top:4px;">Первые ~150 символов видны без клика «Ещё» — самое важное пишите в начало.</div>
+      <button onclick="copyDescOutput()" class="copy-btn" style="margin-top:8px;">Копировать</button>
+    </div>
+
+    <h3 class="section-heading">Таймкоды / главы для описания</h3>
+    <div class="card">
+      <div id="timecode-rows">
+        <div class="gen-row"><input type="text" class="tc-time" placeholder="00:00" style="max-width:70px;"><input type="text" class="tc-label" placeholder="Название момента, напр. Интро"></div>
+      </div>
+      <button class="copy-btn" onclick="addTimecodeRow()">+ Добавить строку</button>
+      <button onclick="generateTimecodes()" style="border:none;background:var(--ink);color:var(--paper);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;margin-left:8px;">Собрать список</button>
+      <textarea class="desc-output" id="timecode-output" readonly placeholder="Готовый список появится тут…" style="min-height:80px;"></textarea>
+      <button onclick="copyTimecodeOutput()" class="copy-btn" style="margin-top:8px;">Копировать</button>
+    </div>
+
+    <h3 class="section-heading">Проверка длины под Shorts</h3>
+    <div class="card">
+      <div class="gen-row">
+        <input id="f-shorts-sec" type="number" placeholder="Длительность в секундах">
+        <button onclick="checkShorts()">Проверить</button>
+      </div>
+      <div id="shorts-check-result"></div>
+    </div>
+
+    <h3 class="section-heading">Генератор сида Minecraft</h3>
+    <div class="card" style="text-align:center;">
+      <div id="seed-output" style="font-family:ui-monospace,monospace;font-size:20px;font-weight:700;margin-bottom:12px;">—</div>
+      <button class="connect-btn" onclick="generateSeed()">🎲 Сгенерировать сид</button>
+    </div>
+
+    <h3 class="section-heading">Банк призывов к действию</h3>
+    <div class="card">
+      ${CTA_PHRASES.map(p => `
+        <div class="prompt-item">
+          <div class="prompt-text">${escapeHtml(p)}</div>
+          <button class="copy-btn" onclick="copyPrompt('${p.replace(/'/g,"\\'")}')">Копировать</button>
+        </div>
+      `).join('')}
+    </div>
+
+    <h3 class="section-heading">Шаблоны интро / аутро</h3>
+    <div class="card">
+      <div class="field"><label>Интро</label><textarea id="f-intro-text">${escapeHtml(io.intro)}</textarea></div>
+      <div class="field"><label>Аутро</label><textarea id="f-outro-text">${escapeHtml(io.outro)}</textarea></div>
+      <div class="sheet-actions" style="margin-top:0;">
+        <button class="btn-cancel" onclick="saveIntroOutro()">Сохранить</button>
+        <button class="btn-save" onclick="copyIntro()">Копировать интро</button>
+      </div>
+      <button class="copy-btn" style="margin-top:8px;" onclick="copyOutro()">Копировать аутро</button>
+    </div>
+
+    <h3 class="section-heading">Банк быстрых ответов на комментарии</h3>
+    <div class="card">
+      ${state.commentReplies.map(r => `
+        <div class="prompt-item">
+          <div class="prompt-text">${escapeHtml(r.text)}</div>
+          <button class="copy-btn" onclick="copyPrompt('${r.text.replace(/'/g,"\\'")}')">Копировать</button>
+          <button class="icon-btn" onclick="deleteReply('${r.id}')">${trashIcon()}</button>
+        </div>
+      `).join('')}
+      <div class="gen-row" style="margin-top:10px;">
+        <input id="f-new-reply" type="text" placeholder="Новый быстрый ответ">
+        <button onclick="addReply()">+</button>
+      </div>
+    </div>
+
+    <h3 class="section-heading">Банк тегов для Minecraft-роликов</h3>
+    <div class="card">
+      <div class="tag-chips">
+        ${MC_TAGS.map(t => `<div class="tag-chip" onclick="copyPrompt('${t.replace(/'/g,"\\'")}')">${escapeHtml(t)}</div>`).join('')}
+      </div>
+      <button class="copy-btn" style="margin-top:12px;" onclick="copyPrompt('${MC_TAGS.join(', ')}')">Копировать все теги</button>
+    </div>`;
+}
+function checkTitleLen(){
+  const val = document.getElementById('f-title-check').value;
+  const len = val.length;
+  const el = document.getElementById('title-len-result');
+  if(!val){ el.textContent = 'YouTube показывает целиком примерно до 60–70 символов.'; el.style.color=''; return; }
+  const ok = len <= 70;
+  el.textContent = `${len} символов` + (ok ? ' — уместится целиком' : ' — скорее всего обрежется в списке видео');
+  el.style.color = ok ? 'var(--green)' : 'var(--red)';
+}
+function checkDescLen(){
+  const val = document.getElementById('f-desc-summary').value;
+  const len = val.length;
+  const el = document.getElementById('desc-len-result');
+  if(!el) return;
+  el.textContent = `${len} символов в кратком описании — первые ~150 видно без клика «Ещё».`;
+}
+function checkShorts(){
+  const sec = parseInt(document.getElementById('f-shorts-sec').value, 10);
+  const el = document.getElementById('shorts-check-result');
+  if(!sec || sec <= 0){ el.innerHTML = ''; return; }
+  if(sec <= 180){
+    el.innerHTML = `<div class="shorts-result yes">✅ Подходит как Shorts (до 3 минут)</div>`;
+  } else {
+    el.innerHTML = `<div class="shorts-result no">Это обычное видео — длиннее 3 минут</div>`;
+  }
+}
+function generateSeed(){
+  const seed = Math.floor(Math.random() * 900000000 - 450000000);
+  document.getElementById('seed-output').textContent = seed;
+}
+function addTimecodeRow(){
+  const wrap = document.getElementById('timecode-rows');
+  const row = document.createElement('div');
+  row.className = 'gen-row';
+  row.innerHTML = `<input type="text" class="tc-time" placeholder="00:00" style="max-width:70px;"><input type="text" class="tc-label" placeholder="Название момента">`;
+  wrap.appendChild(row);
+}
+function generateTimecodes(){
+  const times = document.querySelectorAll('.tc-time');
+  const labels = document.querySelectorAll('.tc-label');
+  const lines = [];
+  for(let i=0;i<times.length;i++){
+    const t = times[i].value.trim(), l = labels[i].value.trim();
+    if(t && l) lines.push(`${t} ${l}`);
+  }
+  if(!lines.length){ showToast('Заполните хотя бы одну строку'); return; }
+  document.getElementById('timecode-output').value = lines.join('\n');
+}
+function copyTimecodeOutput(){
+  const text = document.getElementById('timecode-output').value;
+  if(!text){ showToast('Сначала соберите список'); return; }
+  navigator.clipboard.writeText(text).then(()=>showToast('Таймкоды скопированы')).catch(()=>showToast('Не удалось скопировать'));
+}
+function saveIntroOutro(){
+  const intro = document.getElementById('f-intro-text').value;
+  const outro = document.getElementById('f-outro-text').value;
+  state.introOutro = { intro, outro };
+  save('ytIntroOutro', state.introOutro);
+  showToast('Сохранено');
+}
+function copyIntro(){
+  const t = document.getElementById('f-intro-text').value;
+  if(!t){ showToast('Интро пустое'); return; }
+  navigator.clipboard.writeText(t).then(()=>showToast('Интро скопировано'));
+}
+function copyOutro(){
+  const t = document.getElementById('f-outro-text').value;
+  if(!t){ showToast('Аутро пустое'); return; }
+  navigator.clipboard.writeText(t).then(()=>showToast('Аутро скопировано'));
+}
+function addReply(){
+  const input = document.getElementById('f-new-reply');
+  const text = input.value.trim();
+  if(!text){ showToast('Введите текст ответа'); return; }
+  state.commentReplies.push({ id: uid(), text });
+  save('ytCommentReplies', state.commentReplies);
+  renderTools();
+}
+function deleteReply(id){
+  state.commentReplies = state.commentReplies.filter(r=>r.id!==id);
+  save('ytCommentReplies', state.commentReplies);
+  renderTools();
+}
+function generateTitles(){
+  const word = document.getElementById('f-title-word').value.trim();
+  if(!word){ showToast('Введите тему ролика'); return; }
+  const results = TITLE_TEMPLATES.map(t => t.replace('{w}', word));
+  document.getElementById('title-results').innerHTML = results.map(r => `
+    <div class="gen-result-item">
+      <span>${escapeHtml(r)}</span>
+      <button class="copy-btn" onclick="copyPrompt('${r.replace(/'/g,"\\'")}')">Копировать</button>
+    </div>
+  `).join('');
+}
+function generateDescription(){
+  const title = document.getElementById('f-desc-title').value.trim();
+  const summary = document.getElementById('f-desc-summary').value.trim();
+  if(!title || !summary){ showToast('Заполните оба поля'); return; }
+  const text = `${title}\n\n${summary}\n\nПодписывайся на канал, чтобы не пропустить новые ролики про Minecraft!\n\n#Minecraft #Майнкрафт #Летсплей`;
+  document.getElementById('desc-output').value = text;
+}
+function copyDescOutput(){
+  const text = document.getElementById('desc-output').value;
+  if(!text){ showToast('Сначала сгенерируйте описание'); return; }
+  navigator.clipboard.writeText(text).then(()=>showToast('Описание скопировано')).catch(()=>showToast('Не удалось скопировать'));
+}
+
+/* ---------- THUMBNAIL BUILDER (Превью) ---------- */
+function renderThumbs(){
+  const el = document.getElementById('yt-thumbs');
+  if(!el) return;
+  el.innerHTML = `
+    <div class="thumb-canvas-wrap">
+      <canvas id="thumbCanvas" width="1280" height="720"></canvas>
+    </div>
+    <label class="thumb-upload-btn">
+      📷 Загрузить скриншот
+      <input type="file" accept="image/*" style="display:none;" onchange="handleThumbUpload(event)">
+    </label>
+    <div class="thumb-controls">
+      <div class="thumb-tool-btns">
+        <button data-tool="move" class="active" onclick="setThumbTool('move')">Двигать</button>
+        <button data-tool="arrow" onclick="setThumbTool('arrow')">Стрелка</button>
+        <button data-tool="circle" onclick="setThumbTool('circle')">Круг</button>
+      </div>
+      <div class="thumb-row">
+        <input type="text" id="f-thumb-text" placeholder="Текст на превью">
+        <button onclick="addThumbText()" style="border:none;background:var(--ink);color:var(--paper);border-radius:8px;padding:0 16px;font-size:13px;font-weight:600;">Добавить</button>
+      </div>
+      <div class="thumb-mini-label">Цвет текста</div>
+      <div class="thumb-preset-row" id="thumb-preset-row">
+        ${THUMB_PRESETS.map((p,i)=>`<div class="thumb-preset ${i===0?'active':''}" data-i="${i}" style="background:${p.fill};color:${p.stroke};border-color:${p.stroke};" onclick="pickPreset(${i})">A</div>`).join('')}
+      </div>
+      <div class="thumb-mini-label">Размер текста</div>
+      <div class="thumb-slider-row">
+        <input type="range" id="f-thumb-size" min="30" max="140" value="64" oninput="document.getElementById('thumb-size-val').textContent=this.value; state.thumb.fontSize=parseInt(this.value,10);">
+        <span id="thumb-size-val">64</span>
+      </div>
+      <div class="thumb-mini-label">Стикеры</div>
+      <div class="sticker-row">
+        ${THUMB_STICKERS.map(s => `<button class="sticker-btn" onclick="addSticker('${s}')">${s}</button>`).join('')}
+      </div>
+      <div class="thumb-mini-label">Цепляющие фразы — тапните, чтобы добавить на превью</div>
+      <div class="tag-chips">
+        ${THUMB_PHRASES.map(p => `<div class="tag-chip" onclick="pickPhrase('${p.replace(/'/g,"\\'")}')">${escapeHtml(p)}</div>`).join('')}
+      </div>
+      <div class="thumb-row" style="margin-top:12px;">
+        <button onclick="undoThumbObject()" style="flex:1;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);border-radius:8px;padding:10px 0;font-size:13px;">Отменить</button>
+        <button onclick="clearThumbObjects()" style="flex:1;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);border-radius:8px;padding:10px 0;font-size:13px;">Очистить всё</button>
+      </div>
+      <button class="thumb-download-btn" onclick="downloadThumb()">Скачать превью (1280×720)</button>
+      <div class="thumb-mini-label">Последние превью</div>
+      <div class="thumb-history" id="thumb-history-list"></div>
+    </div>`;
+  setupThumbCanvas();
+  redrawThumbCanvas();
+  renderThumbHistory();
+}
+function setupThumbCanvas(){
+  const canvas = document.getElementById('thumbCanvas');
+  if(!canvas || canvas.dataset.bound) return;
+  canvas.dataset.bound = '1';
+  canvas.addEventListener('pointerdown', e=>{
+    const pos = getCanvasPos(e, canvas);
+    if(state.thumb.tool === 'arrow' || state.thumb.tool === 'circle'){
+      state.thumb.drawStart = pos;
+      return;
+    }
+    const idx = hitTestThumb(pos.x, pos.y);
+    if(idx >= 0){
+      state.thumb.dragIdx = idx;
+      state.thumb.dragOffset = { x: pos.x - state.thumb.objects[idx].x, y: pos.y - state.thumb.objects[idx].y };
+    }
+  });
+  canvas.addEventListener('pointermove', e=>{
+    const pos = getCanvasPos(e, canvas);
+    if((state.thumb.tool === 'arrow' || state.thumb.tool === 'circle') && state.thumb.drawStart){
+      redrawThumbCanvas();
+      const ctx = canvas.getContext('2d');
+      if(state.thumb.tool === 'arrow') drawArrow(ctx, state.thumb.drawStart.x, state.thumb.drawStart.y, pos.x, pos.y);
+      else {
+        const dx = pos.x - state.thumb.drawStart.x, dy = pos.y - state.thumb.drawStart.y;
+        ctx.beginPath(); ctx.arc(state.thumb.drawStart.x, state.thumb.drawStart.y, Math.sqrt(dx*dx+dy*dy), 0, Math.PI*2);
+        ctx.strokeStyle = '#FF3B30'; ctx.lineWidth = 8; ctx.stroke();
+      }
+    } else if(state.thumb.dragIdx >= 0){
+      const o = state.thumb.objects[state.thumb.dragIdx];
+      o.x = pos.x - state.thumb.dragOffset.x;
+      o.y = pos.y - state.thumb.dragOffset.y;
+      redrawThumbCanvas();
+    }
+  });
+  const finishDraw = e=>{
+    const pos = getCanvasPos(e, canvas);
+    if(state.thumb.tool === 'arrow' && state.thumb.drawStart){
+      state.thumb.objects.push({ type:'arrow', x1:state.thumb.drawStart.x, y1:state.thumb.drawStart.y, x2:pos.x, y2:pos.y });
+      state.thumb.drawStart = null; state.thumb.tool = 'move'; setActiveToolBtn('move'); redrawThumbCanvas();
+    } else if(state.thumb.tool === 'circle' && state.thumb.drawStart){
+      const dx = pos.x - state.thumb.drawStart.x, dy = pos.y - state.thumb.drawStart.y;
+      state.thumb.objects.push({ type:'circle', x:state.thumb.drawStart.x, y:state.thumb.drawStart.y, r:Math.sqrt(dx*dx+dy*dy) });
+      state.thumb.drawStart = null; state.thumb.tool = 'move'; setActiveToolBtn('move'); redrawThumbCanvas();
+    }
+    state.thumb.dragIdx = -1;
+  };
+  canvas.addEventListener('pointerup', finishDraw);
+  canvas.addEventListener('pointercancel', ()=>{ state.thumb.dragIdx = -1; state.thumb.drawStart = null; });
+}
+function getCanvasPos(e, canvas){
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+  return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+}
+function hitTestThumb(x, y){
+  for(let i = state.thumb.objects.length - 1; i >= 0; i--){
+    const o = state.thumb.objects[i];
+    if(o.type === 'text' || o.type === 'sticker'){
+      const r = (o.size || 60);
+      if(Math.abs(x - o.x) < r*2 && Math.abs(y - o.y) < r*1.1) return i;
+    }
+  }
+  return -1;
+}
+function drawImageCover(ctx, img, w, h){
+  const ir = img.width / img.height, cr = w / h;
+  let sx, sy, sw, sh;
+  if(ir > cr){ sh = img.height; sw = sh*cr; sx = (img.width-sw)/2; sy = 0; }
+  else { sw = img.width; sh = sw/cr; sx = 0; sy = (img.height-sh)/2; }
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+}
+function drawArrow(ctx, x1, y1, x2, y2){
+  ctx.strokeStyle = '#FF3B30'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const angle = Math.atan2(y2-y1, x2-x1), headLen = 30;
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - headLen*Math.cos(angle-Math.PI/6), y2 - headLen*Math.sin(angle-Math.PI/6));
+  ctx.lineTo(x2 - headLen*Math.cos(angle+Math.PI/6), y2 - headLen*Math.sin(angle+Math.PI/6));
+  ctx.closePath();
+  ctx.fillStyle = '#FF3B30'; ctx.fill();
+}
+function redrawThumbCanvas(){
+  const canvas = document.getElementById('thumbCanvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if(state.thumb.bgImage){
+    drawImageCover(ctx, state.thumb.bgImage, canvas.width, canvas.height);
+  } else {
+    ctx.fillStyle = '#12203a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    for(let gx=0; gx<canvas.width; gx+=64){ ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,canvas.height); ctx.stroke(); }
+    for(let gy=0; gy<canvas.height; gy+=64){ ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(canvas.width,gy); ctx.stroke(); }
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '32px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Загрузите скриншот выше', canvas.width/2, canvas.height/2);
+  }
+  state.thumb.objects.forEach(o=>{
+    if(o.type === 'text'){
+      ctx.font = `900 ${o.size}px Arial, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+      ctx.lineWidth = Math.max(4, o.size*0.12);
+      ctx.strokeStyle = o.stroke;
+      ctx.strokeText(o.text, o.x, o.y);
+      ctx.fillStyle = o.fill;
+      ctx.fillText(o.text, o.x, o.y);
+    } else if(o.type === 'sticker'){
+      ctx.font = `${o.size}px serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(o.emoji, o.x, o.y);
+    } else if(o.type === 'arrow'){
+      drawArrow(ctx, o.x1, o.y1, o.x2, o.y2);
+    } else if(o.type === 'circle'){
+      ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI*2);
+      ctx.strokeStyle = '#FF3B30'; ctx.lineWidth = 8; ctx.stroke();
+    }
+  });
+}
+function setThumbTool(tool){ state.thumb.tool = tool; setActiveToolBtn(tool); }
+function setActiveToolBtn(tool){
+  document.querySelectorAll('.thumb-tool-btns button').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
+}
+function pickPreset(i){
+  const p = THUMB_PRESETS[i];
+  state.thumb.fillColor = p.fill; state.thumb.strokeColor = p.stroke;
+  document.querySelectorAll('#thumb-preset-row .thumb-preset').forEach((el,idx) => el.classList.toggle('active', idx===i));
+}
+function addThumbText(){
+  const input = document.getElementById('f-thumb-text');
+  const text = input.value.trim();
+  if(!text){ showToast('Введите текст'); return; }
+  const canvas = document.getElementById('thumbCanvas');
+  state.thumb.objects.push({ type:'text', text, x:canvas.width/2, y:canvas.height/2, size:state.thumb.fontSize, fill:state.thumb.fillColor, stroke:state.thumb.strokeColor });
+  input.value = '';
+  redrawThumbCanvas();
+}
+function pickPhrase(text){
+  document.getElementById('f-thumb-text').value = text;
+  addThumbText();
+}
+function addSticker(emoji){
+  const canvas = document.getElementById('thumbCanvas');
+  state.thumb.objects.push({ type:'sticker', emoji, x: canvas.width/2 + (Math.random()*160-80), y: canvas.height/2 + (Math.random()*160-80), size: 100 });
+  redrawThumbCanvas();
+}
+function handleThumbUpload(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    const img = new Image();
+    img.onload = ()=>{ state.thumb.bgImage = img; redrawThumbCanvas(); };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function undoThumbObject(){ state.thumb.objects.pop(); redrawThumbCanvas(); }
+function clearThumbObjects(){ state.thumb.objects = []; redrawThumbCanvas(); }
+function downloadThumb(){
+  const canvas = document.getElementById('thumbCanvas');
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+  const a = document.createElement('a');
+  a.href = dataUrl; a.download = 'превью.jpg';
+  document.body.appendChild(a); a.click(); a.remove();
+  saveThumbToHistory(dataUrl);
+}
+function saveThumbToHistory(fullDataUrl){
+  const img = new Image();
+  img.onload = ()=>{
+    const c = document.createElement('canvas'); c.width = 240; c.height = 135;
+    c.getContext('2d').drawImage(img, 0, 0, 240, 135);
+    const small = c.toDataURL('image/jpeg', 0.7);
+    state.thumbHistory.unshift(small);
+    if(state.thumbHistory.length > 6) state.thumbHistory = state.thumbHistory.slice(0, 6);
+    save('ytThumbHistory', state.thumbHistory);
+    renderThumbHistory();
+  };
+  img.src = fullDataUrl;
+}
+function renderThumbHistory(){
+  const el = document.getElementById('thumb-history-list');
+  if(!el) return;
+  el.innerHTML = state.thumbHistory.length
+    ? state.thumbHistory.map(src => `<img src="${src}">`).join('')
+    : '<div style="font-size:12px;color:var(--ink-faint);">Пока пусто</div>';
+}
+
+/* ---------- MONTAGE / EDITING ORGANIZATION (Монтаж) ---------- */
+const recTimer = { running:false, startedAt:0, elapsedBefore:0, marks:[], intervalId:null };
+function renderEdit(){
+  const el = document.getElementById('yt-edit');
+  if(!el) return;
+  const prc = state.prerecordChecklist || {};
+  const edc = state.editChecklist || {};
+  el.innerHTML = `
+    <h3 class="section-heading">Таймер записи — лог моментов для монтажа</h3>
+    <div class="card">
+      <div class="rec-timer-box">
+        <div class="rec-timer-display" id="rec-timer-display">00:00:00</div>
+        <div class="rec-timer-btns">
+          <button class="btn-timer-toggle" id="rec-timer-toggle" onclick="toggleRecTimer()">Старт</button>
+          <button class="btn-mark" onclick="markRecMoment()">Отметить момент</button>
+          <button class="btn-timer-reset" onclick="resetRecTimer()">Сброс</button>
+        </div>
+      </div>
+      <div id="rec-marks-list" style="margin-top:8px;"></div>
+    </div>
+
+    <h3 class="section-heading">Чек-лист перед записью</h3>
+    <div class="card">
+      ${PRERECORD_STEPS.map(s => `
+        <div class="yt-check-item ${prc[s.key]?'checked':''}" onclick="togglePrerecord('${s.key}')">
+          <div class="check-sq ${prc[s.key]?'done':''}"></div>
+          <span>${s.label}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <h3 class="section-heading">Чек-лист монтажа</h3>
+    <div class="card">
+      ${EDIT_STEPS.map(s => `
+        <div class="yt-check-item ${edc[s.key]?'checked':''}" onclick="toggleEditStep('${s.key}')">
+          <div class="check-sq ${edc[s.key]?'done':''}"></div>
+          <span>${s.label}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <h3 class="section-heading">Калькулятор хронометража</h3>
+    <div class="card">
+      <div class="duration-row"><label>Интро</label><input type="number" id="dur-intro" placeholder="сек" oninput="calcDuration()"></div>
+      <div class="duration-row"><label>Основа</label><input type="number" id="dur-main" placeholder="сек" oninput="calcDuration()"></div>
+      <div class="duration-row"><label>Аутро</label><input type="number" id="dur-outro" placeholder="сек" oninput="calcDuration()"></div>
+      <div class="duration-total" id="dur-total">Итого: 0:00</div>
+    </div>
+
+    <h3 class="section-heading">Бесплатная музыка и звуки без авторских прав</h3>
+    <div class="card">
+      ${MUSIC_LINKS.concat(SFX_LINKS).map(l => `
+        <div class="prompt-item">
+          <div class="prompt-text">${escapeHtml(l.name)}</div>
+          <button class="copy-btn" onclick="window.open('${l.url}','_blank')">Открыть</button>
+        </div>
+      `).join('')}
+    </div>
+
+    <h3 class="section-heading">Горячие клавиши монтажных программ</h3>
+    <div class="card">
+      ${KBD_SHORTCUTS.map(app => `
+        <div class="thumb-mini-label" style="margin-top:${app===KBD_SHORTCUTS[0]?'0':'14px'};font-weight:600;color:var(--ink);">${app.app}</div>
+        ${app.keys.map(k => `<div class="kbd-row"><span>${escapeHtml(k[1])}</span><span class="kbd">${escapeHtml(k[0])}</span></div>`).join('')}
+      `).join('')}
+    </div>
+
+    <h3 class="section-heading">Чек-лист кросспостинга</h3>
+    <div class="card">
+      <div style="font-size:12.5px;color:var(--ink-faint);margin-bottom:6px;">Общий чек-лист площадок — отметьте, куда обычно публикуете, для памяти. Отдельно по каждому ролику отмечается в «Роликах».</div>
+      ${CROSSPOST_PLATFORMS.map(p => `
+        <div class="yt-check-item ${prc['cross_'+p.key]?'checked':''}" onclick="togglePrerecord('cross_${p.key}')">
+          <div class="check-sq ${prc['cross_'+p.key]?'done':''}"></div>
+          <span>${p.label}</span>
+        </div>
+      `).join('')}
+    </div>`;
+  renderRecMarks();
+  updateRecTimerDisplay();
+}
+function formatTimer(ms){
+  const totalSec = Math.floor(ms/1000);
+  const h = String(Math.floor(totalSec/3600)).padStart(2,'0');
+  const m = String(Math.floor((totalSec%3600)/60)).padStart(2,'0');
+  const s = String(totalSec%60).padStart(2,'0');
+  return `${h}:${m}:${s}`;
+}
+function updateRecTimerDisplay(){
+  const el = document.getElementById('rec-timer-display');
+  if(!el) return;
+  const elapsed = recTimer.elapsedBefore + (recTimer.running ? Date.now() - recTimer.startedAt : 0);
+  el.textContent = formatTimer(elapsed);
+}
+function toggleRecTimer(){
+  const btn = document.getElementById('rec-timer-toggle');
+  if(recTimer.running){
+    recTimer.elapsedBefore += Date.now() - recTimer.startedAt;
+    recTimer.running = false;
+    clearInterval(recTimer.intervalId);
+    if(btn) btn.textContent = 'Старт';
+  } else {
+    recTimer.startedAt = Date.now();
+    recTimer.running = true;
+    recTimer.intervalId = setInterval(updateRecTimerDisplay, 1000);
+    if(btn) btn.textContent = 'Пауза';
+  }
+}
+function resetRecTimer(){
+  clearInterval(recTimer.intervalId);
+  recTimer.running = false; recTimer.elapsedBefore = 0; recTimer.marks = [];
+  const btn = document.getElementById('rec-timer-toggle');
+  if(btn) btn.textContent = 'Старт';
+  updateRecTimerDisplay();
+  renderRecMarks();
+}
+function markRecMoment(){
+  const elapsed = recTimer.elapsedBefore + (recTimer.running ? Date.now() - recTimer.startedAt : 0);
+  recTimer.marks.push({ time: formatTimer(elapsed), text: 'Момент ' + (recTimer.marks.length+1) });
+  renderRecMarks();
+}
+function renderRecMarks(){
+  const el = document.getElementById('rec-marks-list');
+  if(!el) return;
+  el.innerHTML = recTimer.marks.map((m,i) => `
+    <div class="mark-list-item">
+      <span class="mark-time">${m.time}</span>
+      <span class="mtext">${escapeHtml(m.text)}</span>
+      <button class="icon-btn" onclick="deleteRecMark(${i})">${trashIcon()}</button>
+    </div>
+  `).join('');
+}
+function deleteRecMark(i){ recTimer.marks.splice(i,1); renderRecMarks(); }
+function togglePrerecord(key){
+  state.prerecordChecklist = state.prerecordChecklist || {};
+  state.prerecordChecklist[key] = !state.prerecordChecklist[key];
+  save('ytPrerecordChecklist', state.prerecordChecklist);
+  renderEdit();
+}
+function toggleEditStep(key){
+  state.editChecklist = state.editChecklist || {};
+  state.editChecklist[key] = !state.editChecklist[key];
+  save('ytEditChecklist', state.editChecklist);
+  renderEdit();
+}
+function calcDuration(){
+  const i = parseInt(document.getElementById('dur-intro').value,10) || 0;
+  const m = parseInt(document.getElementById('dur-main').value,10) || 0;
+  const o = parseInt(document.getElementById('dur-outro').value,10) || 0;
+  const total = i + m + o;
+  document.getElementById('dur-total').textContent = 'Итого: ' + formatTimer(total*1000).replace(/^00:/,'');
+}
+
+/* ---------- AI CHAT (провайдер на выбор: GigaChat — работает в РФ без VPN — или свой сервис) ---------- */
+function copyPrompt(text, btn){
+  navigator.clipboard.writeText(text).then(()=>{
+    showToast('Промт скопирован');
+  }).catch(()=> showToast('Не удалось скопировать'));
+}
+function renderAiChat(){
+  const el = document.getElementById('yt-ai');
+  if(!el) return;
+  const messages = (state.giga && state.giga.messages) || [];
+  const connected = state.giga && ((state.giga.provider === 'custom' && state.giga.baseUrl && state.giga.apiKey) || (state.giga.provider !== 'custom' && state.giga.authKey));
+  const providerLabel = state.giga && state.giga.provider === 'custom' ? (state.giga.model || 'свой сервис') : 'GigaChat';
+  el.innerHTML = `
+    <div class="ai-hero">
+      <div style="font-weight:600; font-size:15px;">GigaChat — нейросеть от Сбера</div>
+      <p>Работает в России напрямую, без VPN, и бесплатна для обычного общения. Подходит, чтобы придумывать идеи, заголовки и сценарии для Minecraft-канала.</p>
+      <button class="connect-btn" onclick="window.open('https://giga.chat','_blank')">Открыть GigaChat</button>
+    </div>
+    <h3 class="section-heading">Готовые промты — скопировать и вставить в чат</h3>
+    <div class="card">
+      ${PROMPT_TEMPLATES.map(p => `
+        <div class="prompt-item">
+          <div class="prompt-text">${escapeHtml(p)}</div>
+          <button class="copy-btn" onclick="copyPrompt('${p.replace(/'/g,"\\'")}')">Копировать</button>
+        </div>
+      `).join('')}
+    </div>
+    <div class="ai-inline-head">
+      <h3 class="section-heading" style="margin-bottom:2px !important;">Чат прямо в приложении${connected ? ' · ' + escapeHtml(providerLabel) : ''}</h3>
+      <button class="gear-btn" onclick="openGigaSettings()">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>
+      </button>
+    </div>
+    ${!connected ? `
+      <div class="card" style="text-align:center; color:var(--ink-faint); font-size:13px; padding:20px;">
+        Чтобы писать боту прямо здесь, добавьте ключ через шестерёнку сверху — GigaChat (бесплатно, без VPN) или свой ChatGPT/Gemini-совместимый доступ, если пользуетесь VPN.
+      </div>
+    ` : `
+      <div class="card">
+        <div class="chat-box" id="chat-box">
+          ${messages.length === 0 ? '<div style="text-align:center;color:var(--ink-faint);font-size:12.5px;padding:10px 0;">Задайте вопрос про ваш Minecraft-канал</div>' : ''}
+          ${messages.map(m => `<div class="msg ${m.role}">${escapeHtml(m.text)}</div>`).join('')}
+          ${state.gigaSending ? '<div class="msg bot">Печатает…</div>' : ''}
+        </div>
+        <div class="chat-input-row">
+          <input id="chat-input" type="text" placeholder="Спросите про идеи, сценарий, заголовок…" onkeydown="if(event.key==='Enter') sendGigaMessage();">
+          <button class="chat-send" ${state.gigaSending?'disabled':''} onclick="sendGigaMessage()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          </button>
+        </div>
+      </div>
+    `}
+  `;
+  const box = document.getElementById('chat-box');
+  if(box) box.scrollTop = box.scrollHeight;
+}
+function toggleProviderFields(){
+  const isCustom = document.getElementById('f-provider').value === 'custom';
+  document.getElementById('giga-fields').style.display = isCustom ? 'none' : 'block';
+  document.getElementById('custom-fields').style.display = isCustom ? 'block' : 'none';
+}
+function openGigaSettings(){
+  const provider = (state.giga && state.giga.provider) || 'gigachat';
+  sheet.innerHTML = `
+    <h3>Настройки ИИ-чата</h3>
+    <div class="field">
+      <label>Сервис</label>
+      <select id="f-provider" onchange="toggleProviderFields()">
+        <option value="gigachat" ${provider!=='custom'?'selected':''}>GigaChat — бесплатно, без VPN (Россия)</option>
+        <option value="custom" ${provider==='custom'?'selected':''}>Свой сервис: ChatGPT, Gemini и другие</option>
+      </select>
+    </div>
+    <p style="font-size:12px; color:var(--red); line-height:1.6; margin:0 0 14px;">
+      ChatGPT и Gemini официально блокируют доступ с российских IP — сайт, приложение и API. Без VPN или платного стороннего сервиса они отсюда не откроются. Если это устраивает — впишите свой ключ ниже. Для варианта без VPN выбирайте GigaChat.
+    </p>
+    <div id="giga-fields" style="display:${provider!=='custom'?'block':'none'}">
+      <p style="font-size:12.5px; color:var(--ink-soft); line-height:1.6; margin:-2px 0 12px;">
+        Бесплатный ключ для физлиц (1 млн токенов на 12 месяцев) — в личном кабинете на
+        <a href="https://developers.sber.ru/docs/ru/gigachat/api/tariffs" target="_blank" rel="noopener">developers.sber.ru</a>: создайте проект GigaChat API и скопируйте «Ключ авторизации» (Base64).
+        Если браузер покажет ошибку соединения — установите сертификат Минцифры на <a href="https://www.gosuslugi.ru/crt" target="_blank" rel="noopener">gosuslugi.ru/crt</a>.
+      </p>
+      <div class="field"><label>Ключ авторизации (Base64)</label><input id="f-gigakey" type="text" value="${state.giga && state.giga.authKey ? escapeHtml(state.giga.authKey) : ''}"></div>
+    </div>
+    <div id="custom-fields" style="display:${provider==='custom'?'block':'none'}">
+      <div class="field"><label>Адрес API (например https://api.openai.com/v1)</label><input id="f-baseurl" type="text" value="${state.giga && state.giga.baseUrl ? escapeHtml(state.giga.baseUrl) : ''}"></div>
+      <div class="field"><label>API-ключ</label><input id="f-customkey" type="text" value="${state.giga && state.giga.apiKey ? escapeHtml(state.giga.apiKey) : ''}"></div>
+      <div class="field"><label>Модель (например gpt-4o-mini, gemini-2.0-flash)</label><input id="f-model" type="text" value="${state.giga && state.giga.model ? escapeHtml(state.giga.model) : ''}"></div>
+    </div>
+    <p style="font-size:12px; color:var(--ink-faint); line-height:1.6; margin:0 0 4px;">Ключи хранятся только в этом приложении на вашем устройстве.</p>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="clearGigaChat()">Очистить чат</button>
+      <button class="btn-save" onclick="submitGigaSettings()">Сохранить</button>
+    </div>`;
+  overlay.classList.add('open');
+}
+async function submitGigaSettings(){
+  const provider = document.getElementById('f-provider').value;
+  const prevMessages = (state.giga && state.giga.messages) || [];
+  if(provider === 'custom'){
+    const baseUrl = document.getElementById('f-baseurl').value.trim().replace(/\/$/, '');
+    const apiKey = document.getElementById('f-customkey').value.trim();
+    const model = document.getElementById('f-model').value.trim();
+    if(!baseUrl || !apiKey || !model){ showToast('Заполните все поля своего сервиса'); return; }
+    state.giga = { provider: 'custom', baseUrl, apiKey, model, messages: prevMessages };
+  } else {
+    const authKey = document.getElementById('f-gigakey').value.trim();
+    if(!authKey){ showToast('Введите ключ GigaChat'); return; }
+    state.giga = { provider: 'gigachat', authKey, messages: prevMessages };
+  }
+  await save('giga', state.giga);
+  closeModal();
+  renderAiChat();
+}
+async function clearGigaChat(){
+  if(state.giga){ state.giga.messages = []; await save('giga', state.giga); }
+  closeModal();
+  renderAiChat();
+}
+async function gigaGetToken(){
+  if(state.gigaToken && state.gigaTokenExp && state.gigaTokenExp > Date.now() + 5000) return state.gigaToken;
+  const res = await fetch('https://ngw.devices.sberbank.ru:9443/api/v2/oauth', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': 'Basic ' + state.giga.authKey,
+      'RqUID': (crypto.randomUUID ? crypto.randomUUID() : uid())
+    },
+    body: 'scope=GIGACHAT_API_PERS'
+  });
+  const data = await res.json();
+  if(!data.access_token) throw new Error(data.message || 'Не удалось получить токен');
+  state.gigaToken = data.access_token;
+  state.gigaTokenExp = Date.now() + 25*60*1000;
+  return state.gigaToken;
+}
+async function sendGigaMessage(){
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if(!text || state.gigaSending) return;
+  input.value = '';
+  state.giga.messages = state.giga.messages || [];
+  state.giga.messages.push({ role:'user', text });
+  if(state.giga.messages.length > 40) state.giga.messages = state.giga.messages.slice(-40);
+  state.gigaSending = true;
+  renderAiChat();
+  const history = state.giga.messages.filter(m=>m.role!=='system').map(m => ({ role: m.role === 'bot' ? 'assistant' : 'user', content: m.text }));
+  try{
+    let reply;
+    if(state.giga.provider === 'custom'){
+      const res = await fetch(state.giga.baseUrl + '/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + state.giga.apiKey },
+        body: JSON.stringify({ model: state.giga.model, messages: history })
+      });
+      const data = await res.json();
+      reply = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      if(!reply) throw new Error((data.error && data.error.message) || 'Пустой ответ от сервиса');
+    } else {
+      const token = await gigaGetToken();
+      const res = await fetch('https://gigachat.devices.sberbank.ru/api/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ model: 'GigaChat', messages: history })
+      });
+      const data = await res.json();
+      reply = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      if(!reply) throw new Error(data.message || 'Пустой ответ от GigaChat');
+    }
+    state.giga.messages.push({ role:'bot', text: reply });
+  }catch(e){
+    console.error(e);
+    const hint = state.giga.provider === 'custom'
+      ? 'Проверьте адрес API, ключ и что сервис доступен без VPN оттуда, где вы находитесь.'
+      : 'Попробуйте кнопку «Открыть GigaChat» выше — она работает без настройки.';
+    state.giga.messages.push({ role:'system', text: 'Не удалось получить ответ (' + (e.message||'ошибка сети') + '). ' + hint });
+  }
+  state.gigaSending = false;
+  save('giga', state.giga);
+  renderAiChat();
+}
+
+/* ---------- HELPERS ---------- */
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function plural(n){
+  const m10 = n%10, m100 = n%100;
+  if(m10===1 && m100!==11) return 'а';
+  if([2,3,4].includes(m10) && ![12,13,14].includes(m100)) return 'ы';
+  return '';
+}
+function emptyState(title, sub){
+  return `<div class="empty">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+    <div style="font-weight:600; color:var(--ink); margin-bottom:4px;">${title}</div>
+    <div>${sub}</div>
+  </div>`;
+}
+function trashIcon(){
+  return `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></svg>`;
+}
+
+/* ---------- TABS ---------- */
+const titles = {notes:'Заметки', cards:'Карточки', plan:'План', yt:'Ютуб · Minecraft'};
+document.querySelectorAll('nav .tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav .tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    state.tab = btn.dataset.tab;
+    if(state.tab === 'cards'){ state.reviewQueue = []; renderCards(); }
+    document.getElementById('view-' + state.tab).classList.add('active');
+    document.getElementById('headerTitle').textContent = titles[state.tab];
+    updateFabVisibility();
+  });
+});
+document.querySelectorAll('.yt-sub-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.yt-sub-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.yt-sub-view').forEach(v=>v.classList.remove('active'));
+    state.ytSub = btn.dataset.sub;
+    document.getElementById('yt-sub-' + state.ytSub).classList.add('active');
+    updateFabVisibility();
+  });
+});
+function updateFabVisibility(){
+  const fab = document.getElementById('fab');
+  const hide = state.tab === 'yt' && (state.ytSub === 'channel' || state.ytSub === 'ai');
+  fab.style.display = hide ? 'none' : 'flex';
+}
+updateFabVisibility();
+
+/* ---------- FAB / MODAL ---------- */
+const overlay = document.getElementById('overlay');
+const sheet = document.getElementById('sheet');
+document.getElementById('fab').addEventListener('click', openModal);
+overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeModal(); });
+function closeModal(){ overlay.classList.remove('open'); }
+
+function openModal(){
+  if(state.tab === 'notes'){
+    sheet.innerHTML = `
+      <h3>Новая заметка</h3>
+      <div class="field"><label>Заголовок (необязательно)</label><input id="f-title" type="text"></div>
+      <div class="field"><label>Текст</label><textarea id="f-text" autofocus></textarea></div>
+      <div class="sheet-actions">
+        <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+        <button class="btn-save" onclick="submitNote()">Сохранить</button>
+      </div>`;
+  } else if(state.tab === 'cards'){
+    sheet.innerHTML = `
+      <h3>Новая карточка</h3>
+      <div class="field"><label>Вопрос / термин</label><textarea id="f-front"></textarea></div>
+      <div class="field"><label>Ответ</label><textarea id="f-back"></textarea></div>
+      <div class="sheet-actions">
+        <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+        <button class="btn-save" onclick="submitCard()">Сохранить</button>
+      </div>`;
+  } else if(state.tab === 'plan'){
+    sheet.innerHTML = `
+      <h3>Новая задача</h3>
+      <div class="field"><label>Что нужно сделать</label><input id="f-task" type="text"></div>
+      <div class="field"><label>Срок (необязательно)</label><input id="f-due" type="date"></div>
+      <div class="sheet-actions">
+        <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+        <button class="btn-save" onclick="submitTask()">Сохранить</button>
+      </div>`;
+  } else if(state.tab === 'yt' && state.ytSub === 'ideas'){
+    sheet.innerHTML = `
+      <h3>Новая идея</h3>
+      <div class="field"><label>О чём ролик</label><input id="f-idea" type="text" placeholder="Например: Ловушка для крипера" autofocus></div>
+      <div class="field">
+        <label>Формат</label>
+        <div class="weekday-row" id="idea-type-row">
+          <div class="weekday-chip on" data-type="video" onclick="setIdeaType('video')">Видео</div>
+          <div class="weekday-chip" data-type="shorts" onclick="setIdeaType('shorts')">Shorts</div>
+        </div>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+        <button class="btn-save" onclick="submitIdea()">Сохранить</button>
+      </div>`;
+    state.pendingIdeaType = 'video';
+  } else {
+    sheet.innerHTML = `
+      <h3>Новый ролик</h3>
+      <div class="field"><label>Название или идея ролика</label><input id="f-video" type="text" placeholder="Например: Строим ферму мобов"></div>
+      <div class="field"><label>Серия (необязательно)</label><input id="f-video-series" type="text" placeholder="Например: 100 дней выживания"></div>
+      <div class="sheet-actions">
+        <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+        <button class="btn-save" onclick="submitVideo()">Сохранить</button>
+      </div>`;
+  }
+  overlay.classList.add('open');
+}
+function submitNote(){
+  const title = document.getElementById('f-title').value.trim();
+  const text = document.getElementById('f-text').value.trim();
+  if(!text){ showToast('Введите текст заметки'); return; }
+  state.notes.push({ id: uid(), title, text, updated: Date.now() });
+  save('notes', state.notes);
+  renderNotes(); closeModal();
+}
+function submitCard(){
+  const front = document.getElementById('f-front').value.trim();
+  const back = document.getElementById('f-back').value.trim();
+  if(!front || !back){ showToast('Заполните обе стороны'); return; }
+  state.cards.push({ id: uid(), front, back, created: Date.now(), nextReview: null });
+  save('cards', state.cards);
+  renderCards(); closeModal();
+}
+function submitTask(){
+  const text = document.getElementById('f-task').value.trim();
+  const dueVal = document.getElementById('f-due').value;
+  if(!text){ showToast('Введите задачу'); return; }
+  const due = dueVal ? new Date(dueVal + 'T00:00:00').getTime() : null;
+  state.tasks.push({ id: uid(), text, due, done:false, created: Date.now() });
+  save('tasks', state.tasks);
+  renderTasks(); closeModal();
+}
+
+loadAll();
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
